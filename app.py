@@ -10,7 +10,7 @@ st.set_page_config(layout="wide")
 st.title("Heightmap Actuator Extractor & 3D Curves")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
-uploaded = st.file_uploader("Upload model geometry (OBJ/STL in mm)", type=["stl","obj"])
+uploaded = st.file_uploader("Upload planer geometry (OBJ/STL in mm)", type=["stl","obj"])
 
 # ── 2) MACHINE PARAMETERS ─────────────────────────────────
 st.markdown("### Machine Parameters (defaults shown)")
