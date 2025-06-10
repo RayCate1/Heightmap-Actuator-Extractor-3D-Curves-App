@@ -145,7 +145,7 @@ if st.button("Process", key="process_btn"):
 
     # 4.12 Show & download params.json
     st.subheader("Machine Params")
-    st.json(params)
+    # st.json(params)
     st.download_button(
         "Download params.json",
         data=json.dumps(params, indent=2),
