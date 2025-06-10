@@ -45,7 +45,7 @@ with b1:
     height_unit = st.selectbox("Height Unit", ["ft","mm"], index=0, key="height_unit")
 with b2:
     num_actuators = st.number_input("Number of Actuators", min_value=1, value=10, step=1, key="n_act")
-    nz            = st.slider("Z-Resolution (# slices)", 10, 1000, 200, key="z_res")
+    nz            = st.slider("Z-Resolution (# slices)", 10, 10000, 200, key="z_res")
     steps_per_mm  = st.number_input("Steps per mm", value=1.0, key="spm")
 
 # ── 4) LAUNCH PROCESS ───────────────────────────────────────
