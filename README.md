@@ -1,7 +1,5 @@
 # Heightmap-Actuator-Extractor-3D-Curves-App
 
-# Heightmap Actuator Extractor & 3D Curves
-
 A Streamlit-powered GUI tool to  
 1. Load a 3D mesh (STL/OBJ)  
 2. Sample its surface along evenly-spaced “actuator” X-positions  
