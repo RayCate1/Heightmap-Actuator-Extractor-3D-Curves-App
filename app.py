@@ -130,8 +130,13 @@ with col1:
 with col2:
     after_temp     = st.number_input("After-Dye Temperature (°F)", value=338.0)
     resin_ratio    = st.text_input("Resin:Fiber Ratio", value="1:1")
+with col3:
+    comp_force     = st.number_input("Compressive Force (psi)", value=15.0)
+    comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
+    dye_thickness  = st.number_input("Dye Thickness (in)", value=0.0)
+
         # Params JSON (all Imperial)
-    params = {
+params = {
         "model_file":            uploaded.name,
         "pull_speed_in_per_min": pull_speed,
         "dye_temperature_F":     dye_temp,
@@ -145,15 +150,11 @@ with col2:
         "bounds_height_ft":      height_val,
         "number_of_actuators":   num_actuators,
         "z_resolution":          nz
-    }
-    st.subheader("Machine Params JSON")
-    st.download_button(
+}
+st.subheader("Machine Params JSON")
+st.download_button(
         "Download params.json",
         data=json.dumps(params, indent=2),
         file_name="params.json",
         mime="application/json"
-    )
-with col3:
-    comp_force     = st.number_input("Compressive Force (psi)", value=15.0)
-    comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
-    dye_thickness  = st.number_input("Dye Thickness (in)", value=0.0)
+)
