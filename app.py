@@ -124,14 +124,14 @@ if st.button("Process"):
 st.markdown("### Machine Parameters (Imperial Defaults)")
 col1, col2, col3 = st.columns(3)
 with col1:
-    pull_speed     = st.number_input("Pull Speed (in/min)", value=15.0, format="%.2f")
+    after_temp     = st.number_input("After-Dye Temperature (°F)", value=338.0)
     dye_temp       = st.number_input("Dye Temperature (°F)", value=302.0)
     wet_temp       = st.number_input("Wet Fiber Temperature (°F)", value=59.0)
 with col2:
-    after_temp     = st.number_input("After-Dye Temperature (°F)", value=338.0)
+    pull_speed     = st.number_input("Pull Speed (in/min)", value=15.0, format="%.2f")
     resin_ratio    = st.text_input("Resin:Fiber Ratio", value="1:1")
-with col3:
     comp_force     = st.number_input("Compressive Force (psi)", value=15.0)
+with col3:
     comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
     dye_thickness  = st.number_input("Dye Thickness (in)", value=0.0)
 
