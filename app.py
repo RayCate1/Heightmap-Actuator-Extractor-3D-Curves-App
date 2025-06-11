@@ -41,7 +41,6 @@ b1, b2 = st.columns(2)
 with b1:
     width_val   = st.number_input("Bounds Width", value=6.0)
     height_val  = st.number_input("Bounds Height", value=4.0)
-    height_unit = st.selectbox("Height Unit", ["ft", "mm"], index=0)
 with b2:
     width_unit  = st.selectbox("Width Unit", ["ft", "mm"], index=0)
     height_unit = st.selectbox("Height Unit", ["ft", "mm"], index=0)
