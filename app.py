@@ -166,59 +166,57 @@ if st.button("Process", key="process_btn"):
     df = pd.DataFrame(rows)
     st.dataframe(df,use_container_width=True)
 
-   # ── 4.14 BUILD & PLOT OFFSET CURVES ───────────────────────────
-thickness_mm = comp_thickness if comp_thick_unit=="mm" else comp_thickness*25.4
-thickness_steps = thickness_mm * steps_per_mm
-st.subheader("Actuator Curves ± Offset (in steps)")
-fig = go.Figure()
-z_coords = np.arange(nz)  # slice‐index axis
-
-for i, xm in enumerate(xs_mm, start=1):
-    # original curve in steps
-    y_orig = H_steps[i-1, :]
-    x_orig = np.full(nz, xm)
-    z_orig = z_coords
-
-    # 1) compute local deltas along the curve
-    dy = np.diff(y_orig)        # length nz-1
-    dz = np.diff(z_orig)        # this is just an array of 1s
-
-    lengths = np.sqrt(dy**2 + dz**2)
-    # avoid division by zero
-    cos_angles = np.where(lengths>1e-6, dy/lengths, 1.0)
-    disp = thickness_steps / cos_angles   # length nz-1
-
-    # unit‐tangent components
-    uy = dy/lengths
-    uz = dz/lengths
-
-    # pad so we have one displacement/tangent per original point
-    uy_full = np.concatenate(([uy[0]], uy, [uy[-1]]))
-    uz_full = np.concatenate(([uz[0]], uz, [uz[-1]]))
-    disp_full = np.concatenate(([disp[0]], disp, [disp[-1]]))
-
-    # compute displaced curves
-    y_top = y_orig + uy_full * disp_full
-    z_top = z_orig + uz_full * disp_full
-    y_bot = y_orig - uy_full * disp_full
-    z_bot = z_orig - uz_full * disp_full
-
-    # add traces
-    fig.add_trace(go.Scatter3d(
-        x=x_orig, y=y_top, z=z_top,
-        mode='lines', name=f"Act {i} Top"
-    ))
-    fig.add_trace(go.Scatter3d(
-        x=x_orig, y=y_bot, z=z_bot,
-        mode='lines', name=f"Act {i} Bottom"
-    ))
-
-fig.update_layout(
-    scene=dict(
-        xaxis_title="X (mm)",
-        yaxis_title="Y (steps)",
-        zaxis_title="Z (slice idx)"
-    ),
-    height=600, margin=dict(l=20, r=20, t=40, b=20)
-)
-st.plotly_chart(fig, use_container_width=True)
+        # ── 4.14 BUILD & PLOT OFFSET CURVES ───────────────────────────
+        # convert composite thickness into steps
+    thickness_mm    = comp_thickness if comp_thickness_u=="mm" else comp_thickness*25.4
+    thickness_steps = thickness_mm * steps_per_mm
+    
+    st.subheader("Actuator Curves ± Offset (in steps)")
+    fig = go.Figure()
+    z_coords = np.arange(nz)  # slice‐index axis
+    
+    for i, xm in enumerate(xs_mm, start=1):
+         y_orig = H_steps[i-1, :]
+         x_orig = np.full(nz, xm)
+         z_orig = z_coords
+    
+         # compute local deltas
+         dy = np.diff(y_orig)
+         dz = np.diff(z_orig)  # all ones
+         lengths = np.hypot(dy, dz)
+         cos_angles = np.where(lengths>1e-6, dy/lengths, 1.0)
+         disp = thickness_steps / cos_angles
+    
+         # unit tangent
+         uy = dy/lengths
+         uz = dz/lengths
+    
+         # pad to match original length
+         uy_full   = np.concatenate(([uy[0]], uy,   [uy[-1]]))
+         uz_full   = np.concatenate(([uz[0]], uz,   [uz[-1]]))
+         disp_full = np.concatenate(([disp[0]], disp, [disp[-1]]))
+    
+         # offset curves
+         y_top = y_orig + uy_full * disp_full
+         z_top = z_orig + uz_full * disp_full
+         y_bot = y_orig - uy_full * disp_full
+         z_bot = z_orig - uz_full * disp_full
+    
+         fig.add_trace(go.Scatter3d(
+             x=x_orig, y=y_top, z=z_top,
+             mode='lines', name=f"Act {i} Top"
+         ))
+         fig.add_trace(go.Scatter3d(
+             x=x_orig, y=y_bot, z=z_bot,
+             mode='lines', name=f"Act {i} Bottom"
+         ))
+    
+    fig.update_layout(
+         scene=dict(
+             xaxis_title="X (mm)",
+             yaxis_title="Y (steps)",
+             zaxis_title="Z (slice idx)"
+         ),
+         height=600, margin=dict(l=20, r=20, t=40, b=20)
+     )
+     st.plotly_chart(fig, use_container_width=True)
