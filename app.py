@@ -166,21 +166,29 @@ if st.button("Process", key="process_btn"):
     df = pd.DataFrame(rows)
     st.dataframe(df,use_container_width=True)
 
-    # 4.14 3D Curves: X(mm), Y=steps, Z=slice index
+    # 4.14 Convert last‐computed H_mm (in mm) to inches
+    H_inches = H_mm / 25.4
+
+    # 4.15 Actuator Curves in 3D: X=actuator #, Y=height (in), Z=sample idx
     st.subheader("Actuator Curves in 3D")
-    fig=go.Figure()
-    z_steps=np.arange(nz)
-    for i,xm in enumerate(xs_mm, start=1):
+    fig = go.Figure()
+    sample_indices = np.arange(nz)
+    for i in range(len(xs_mm)):
         fig.add_trace(go.Scatter3d(
-            x=np.full(nz,xm),
-            y=H_steps[i-1,:],
-            z=z_steps,
+            x=np.full(nz, i+1),      # actuator number 1…num_actuators
+            y=H_inches[i, :],         # height in inches
+            z=sample_indices,         # sample (slice) index
             mode='lines',
-            name=f"Act {i}"
+            name=f"Act {i+1}"
         ))
     fig.update_layout(
-        scene=dict(xaxis_title="X (mm)",
-                   yaxis_title="Y (steps)",
-                   zaxis_title="Z (slice idx)"),
-        height=600,margin=dict(l=20,r=20,t=40,b=20))
-    st.plotly_chart(fig,use_container_width=True)
+        scene=dict(
+            xaxis_title="Actuator #",
+            yaxis_title="Height (in)",
+            zaxis_title="Sample #"
+        ),
+        height=600,
+        margin=dict(l=20, r=20, t=40, b=20)
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
