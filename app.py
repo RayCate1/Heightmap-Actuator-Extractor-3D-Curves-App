@@ -167,6 +167,8 @@ if st.button("Process", key="process_btn"):
     st.dataframe(df,use_container_width=True)
 
    # ── 4.14 BUILD & PLOT OFFSET CURVES ───────────────────────────
+thickness_mm = comp_thickness if comp_thick_unit=="mm" else comp_thickness*25.4
+thickness_steps = thickness_mm * steps_per_mm
 st.subheader("Actuator Curves ± Offset (in steps)")
 fig = go.Figure()
 z_coords = np.arange(nz)  # slice‐index axis
