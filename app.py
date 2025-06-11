@@ -61,8 +61,7 @@ if st.button("Process"):
     bounds_height_mm = to_mm(height_val, height_unit)
 
     # 4.2 Load mesh
-    mesh = trimesh.load(BytesIO(uploaded.read()),
-                        file_type=uploaded.name.split('.')[-1])
+    mesh = trimesh.load(BytesIO(uploaded.read()), file_type=uploaded.name.split('.')[-1])
     if mesh.is_empty:
         st.error("Mesh is empty.")
         st.stop()
@@ -164,7 +163,7 @@ if st.button("Process"):
 
         # local deltas
         dy = np.diff(y_orig)
-        dz = np.diff(z_orig)                # ones
+        dz = np.diff(z_orig)
         lengths    = np.hypot(dy, dz)
         cos_angles = np.where(lengths > 1e-6, dy / lengths, 1.0)
         disp       = thickness_in / cos_angles
