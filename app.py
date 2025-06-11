@@ -7,7 +7,7 @@ from io import BytesIO
 import plotly.graph_objects as go
 
 st.set_page_config(layout="wide")
-st.title("Heightmap Actuator Extractor & 3D Curves")
+st.title("Heightmap Actuator Extractor & 3D Curves test test test")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 uploaded = st.file_uploader("Upload planer geometry (OBJ/STL in mm)", type=["stl","obj"])
