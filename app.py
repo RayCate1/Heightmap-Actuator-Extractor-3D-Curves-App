@@ -165,8 +165,8 @@ if st.button("Process", key="process_btn"):
         rows.append(row)
     df = pd.DataFrame(rows)
     st.dataframe(df,use_container_width=True)
-
- # ── 4.14 BUILD & PLOT OFFSET CURVES ───────────────────────────
+    
+     # ── 4.14 BUILD & PLOT OFFSET CURVES ───────────────────────────
  # convert composite thickness into steps
  thickness_mm    = comp_thickness if comp_thickness_u=="mm" else comp_thickness*25.4
  thickness_steps = thickness_mm * steps_per_mm
@@ -220,4 +220,3 @@ if st.button("Process", key="process_btn"):
      height=600, margin=dict(l=20, r=20, t=40, b=20)
  )
  st.plotly_chart(fig, use_container_width=True)
-
