@@ -166,7 +166,7 @@ if st.button("Process"):
         st.dataframe(disp_df, use_container_width=True)
 
     # ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
-    st.subheader("Actuator Curves with Surface Normals")
+    st.subheader("Displaced Curves in 3D")
     fig = go.Figure()
     samp = np.arange(nz)
     for i in range(len(xs_in)):
