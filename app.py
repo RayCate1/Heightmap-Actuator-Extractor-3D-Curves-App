@@ -18,10 +18,10 @@ b1, b2 = st.columns(2)
 with b1:
     width_val  = st.number_input("Bounds Width (ft)", value=6.0)
     height_val = st.number_input("Bounds Height (ft)", value=4.0)
+    comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
 with b2:
     num_actuators = st.number_input("Number of Actuators", min_value=1, value=10, step=1)
     nz            = st.slider("Z-Resolution (# slices)", 10, 10_000, 200)
-    comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
 
 # ── 4) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
