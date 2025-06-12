@@ -146,30 +146,6 @@ if st.button("Process"):
     with st.expander("Normal Vectors & Normal-Based Displacement", expanded=False):
         st.subheader("Normal Vectors & Normal-Based Displacement")
         st.dataframe(vec_df, use_container_width=True)
-
-    # ── 4.12 3D Plot: X=actuator #, Y=sample #, Z=height (in) ──
-    st.subheader("Actuator Curves in 3D")
-    fig = go.Figure()
-    samp = np.arange(nz)
-    for i in range(len(xs_in)):
-        fig.add_trace(go.Scatter3d(
-            x=np.full(nz, i+1),     # actuator number 1…N
-            y=samp,                  # sample (slice) index
-            z=H_in[i, :],            # height in inches
-            mode='lines',
-            name=f"Act {i+1}"
-        ))
-    fig.update_layout(
-        scene=dict(
-            xaxis_title="Actuator #",
-            xaxis=dict(autorange="reversed"),
-            yaxis_title="Sample #",
-            zaxis_title="Height (in)"
-        ),
-        height=600, margin=dict(l=20, r=20, t=40, b=20)
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
     
     # ── 4.14 Build & show “top”/“bottom” height table ─────────────────────────
     disp_half = disp_normal / 2.0
@@ -188,6 +164,54 @@ if st.button("Process"):
     with st.expander("Displaced Height Data (inches) — Top & Bottom Curves", expanded=False):
         st.subheader("Displaced Height Data (inches) — Top & Bottom Curves")
         st.dataframe(disp_df, use_container_width=True)
+
+        # ── 4.12 3D Plot: curves + normal vectors ─────────────────────────
+    st.subheader("Actuator Curves with Surface Normals")
+    fig = go.Figure()
+    samp = np.arange(nz)
+    A    = len(xs_in)
+
+    # 1) draw each actuator’s curve
+    for i in range(A):
+        fig.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1),
+            y=samp,
+            z=H_in[i, :],
+            mode='lines',
+            name=f"Act {i+1}"
+        ))
+
+    # 2) build a grid of points & normals
+    # positions
+    Xg = np.repeat(np.arange(1, A+1)[:, None], nz, axis=1).flatten()
+    Yg = np.repeat(samp[None, :],              A, axis=0).flatten()
+    Zg = H_in.flatten()
+    # normal components
+    Ug = nx.flatten()      # x‐component of normal (should be zero)
+    Vg = ny.flatten()      # y‐component
+    Wg = nz_norm.flatten() # z‐component
+
+    # 3) add normal arrows as cones
+    fig.add_trace(go.Cone(
+        x=Xg, y=Yg, z=Zg,
+        u=Ug, v=Vg, w=Wg,
+        anchor="tail",
+        sizemode="absolute",
+        sizeref=0.5,      # tweak this to make arrows longer/shorter
+        showscale=False
+    ))
+
+    fig.update_layout(
+        scene=dict(
+            xaxis_title="Actuator #",
+            xaxis=dict(autorange="reversed"),
+            yaxis_title="Sample #",
+            zaxis_title="Height (in)"
+        ),
+        height=700,
+        margin=dict(l=20, r=20, t=40, b=20)
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
     # ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
     st.subheader("Displaced Actuator Curves in 3D")
