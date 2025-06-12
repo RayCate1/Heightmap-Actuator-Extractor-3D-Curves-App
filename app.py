@@ -88,7 +88,7 @@ if st.button("Process"):
     xs_in = xs_mm / 25.4
 
     # 4.11 Heights table (inches)
-    st.subheader("Height Data (inches)")
+    st.subheader("Parent Height Data (inches)")
     rows = []
     for i, xi in enumerate(xs_in, start=1):
         row = {"Actuator": i, "X (in)": float(round(xi,3))}
@@ -268,8 +268,8 @@ for i in range(len(xs_in)):
 fig.update_layout(
     scene=dict(
         xaxis_title="Actuator #",
-        xaxis=dict(autorange="reversed"),
         yaxis_title="Sample #",
+        yaxis=dict(autorange="reversed"),
         zaxis_title="Displaced Height (in)"
     ),
     height=600,
