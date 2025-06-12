@@ -2,4 +2,5 @@ trimesh
 streamlit
 plotly
 rtree
+scipy.interpolate
 UnivariateSpline
