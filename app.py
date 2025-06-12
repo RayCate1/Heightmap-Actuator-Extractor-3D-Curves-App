@@ -158,19 +158,29 @@ st.download_button(
         file_name="params.json",
         mime="application/json"
 )
-# ── 4.11 Compute velocity (inches per sample) ───────────────
-# V has same shape as H_in: V[i,j] ≈ (H_in[i,j+1] – H_in[i,j-1]) / 2
-V = np.gradient(H_in, axis=1)
+# ── compute height‐derivative (vy) and slice‐derivative (vz) ──
+vy = np.gradient(H_in, axis=1)         # shape (num_actuators, nz)
+slices = np.arange(nz)
+vz = np.gradient(slices)               # 1.0 everywhere, shape (nz,)
 
-# ── 4.12 Show velocity table ────────────────────────────────
-vel_rows = []
-for i, xi in enumerate(xs_in, start=1):
-    row = {"Actuator": i}
-    for j in range(nz):
-        v = V[i-1, j]
-        row[f"V[{j}]"] = None if np.isnan(v) else float(round(v, 4))
-    vel_rows.append(row)
+# vx is just zeros of the same shape as vy
+vx = np.zeros_like(vy)
 
-vel_df = pd.DataFrame(vel_rows)
-st.subheader("Velocity Data (inches per sample)")
-st.dataframe(vel_df, use_container_width=True)
+# ── build a flat table of vectors ─────────────────────────────
+vec_rows = []
+for i in range(len(xs_in)):        # actuator index
+    for j in range(nz):            # slice index
+        vec_rows.append({
+            "Actuator":   i+1,
+            "Slice":      j,
+            "vx":         0.0,
+            "vy":         float(round(vy[i, j], 4)),
+            "vz":         float(round(vz[j],     4)),
+            "vector":     f"{{0, {vy[i,j]:.4f}, {vz[j]:.4f}}}"
+        })
+
+vec_df = pd.DataFrame(vec_rows)
+
+st.subheader("Velocity Vectors (inches per sample)")
+st.dataframe(vec_df, use_container_width=True)
+
