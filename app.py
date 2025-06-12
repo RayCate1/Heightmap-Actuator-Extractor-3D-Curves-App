@@ -211,3 +211,57 @@ vec_df = pd.DataFrame(vec_rows)
 st.subheader("Velocity, Angle & Displacement")
 st.dataframe(vec_df, use_container_width=True)
 
+# ── 4.12 3D Plot: curves + velocity vectors ─────────────────
+st.subheader("Actuator Curves with Velocity Vectors")
+
+fig = go.Figure()
+
+# 1) draw each actuator’s curve
+for i in range(len(xs_in)):
+    fig.add_trace(go.Scatter3d(
+        x=np.full(nz, i+1),
+        y=np.arange(nz),
+        z=H_in[i, :],
+        mode='lines',
+        name=f"Act {i+1}"
+    ))
+
+# 2) prepare the vector field (u,v,w) at each point
+A = len(xs_in)
+# grid of positions
+Xg = np.repeat(np.arange(1, A+1)[:, None], nz, axis=1)
+Yg = np.repeat(np.arange(nz)[None, :], A, axis=0)
+Zg = H_in
+
+# vector components in plot axes:
+#   u = 0  (no x‐movement)
+#   v = 1  (1 slice per sample along y‐axis)
+#   w = vy (dH/dslice along z‐axis)
+Ug = np.zeros_like(Zg)
+Vg = np.ones_like(Zg)
+Wg = vy  # vy from your np.gradient(H_in)
+
+fig.add_trace(go.Cone(
+    x=Xg.flatten(),
+    y=Yg.flatten(),
+    z=Zg.flatten(),
+    u=Ug.flatten(),
+    v=Vg.flatten(),
+    w=Wg.flatten(),
+    anchor="tail",
+    sizemode="absolute",
+    sizeref=2,        # tweak this to scale arrow length
+    showscale=False
+))
+
+fig.update_layout(
+    scene=dict(
+        xaxis_title="Actuator #",
+        yaxis_title="Sample #",
+        zaxis_title="Height (in)"
+    ),
+    height=700,
+    margin=dict(l=20, r=20, t=40, b=20),
+)
+
+st.plotly_chart(fig, use_container_width=True)
