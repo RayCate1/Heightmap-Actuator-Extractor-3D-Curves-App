@@ -8,7 +8,7 @@ from io import BytesIO
 from scipy.interpolate import UnivariateSpline
 
 st.set_page_config(layout="wide")
-st.title("Heightmap Actuator Extractor & 3D Curves")
+st.title("Heightmap Actuator Extractor & 3D Curves m")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in mm)", type=["stl", "obj"])
@@ -55,15 +55,6 @@ if st.button("Process"):
     # 4.4 Map into mesh coords
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
     xs_mesh = xmin + (xs_mm / bounds_width_mm) * (xmax - xmin)
-    # physical slice spacing (inches)
-    ds_in = (zmax - zmin) / (nz - 1) / 25.4
-    
-    # now when you compute vy, either
-    # A) use numpy.gradient with real spacing:
-    vy = np.gradient(H_in, ds_in, axis=1)      # ∂H/∂s_phys (inches per inch)
-
-    # 4.5 Z slices
-    zs = np.linspace(zmin, zmax, nz)
 
     # 4.6 Nudge inwards
     if num_actuators > 1:
@@ -96,6 +87,16 @@ if st.button("Process"):
    # 4.9 Convert outputs to Imperial
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
+    
+    # physical slice spacing (inches)
+    ds_in = (zmax - zmin) / (nz - 1) / 25.4
+    
+    # now when you compute vy, either
+    # A) use numpy.gradient with real spacing:
+    vy = np.gradient(H_in, ds_in, axis=1)      # ∂H/∂s_phys (inches per inch)
+
+    # 4.5 Z slices
+    zs = np.linspace(zmin, zmax, nz)
     # NEW: apply the vertical shift if requested
     if shift_zero:
         half_y_span = (ymax - ymin) / 2.0
