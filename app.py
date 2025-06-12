@@ -127,25 +127,25 @@ disp_normal = thickness_in * v_norm                # shape (A, nz)
 # angle between N and vertical = arccos(ny)
 theta_n     = np.arccos(np.clip(ny, -1.0, 1.0))     # radians
 
-# # ── 4.13 build flat table of normals + θ + disp ────────────
-# vec_rows = []
-# A = len(xs_in)
-# for i in range(A):
-#     for j in range(nz):
-#         vec_rows.append({
-#             "Actuator":  i+1,
-#             "Slice":     j,
-#             "nx":        float(round(nx[i,j],     4)),
-#             "ny":        float(round(ny[i,j],     4)),
-#             "nz":        float(round(nz_norm[i,j],4)),
-#             "θₙ (rad)":  float(round(theta_n[i,j],4)),
-#             "disp (in)": float(round(disp_normal[i,j],4)),
-#             "normal":    f"{{{nx[i,j]:.4f}, {ny[i,j]:.4f}, {nz_norm[i,j]:.4f}}}"
-#         })
+# ── 4.13 build flat table of normals + θ + disp ────────────
+vec_rows = []
+A = len(xs_in)
+for i in range(A):
+    for j in range(nz):
+        vec_rows.append({
+            "Actuator":  i+1,
+            "Slice":     j,
+            "nx":        float(round(nx[i,j],     4)),
+            "ny":        float(round(ny[i,j],     4)),
+            "nz":        float(round(nz_norm[i,j],4)),
+            "θₙ (rad)":  float(round(theta_n[i,j],4)),
+            "disp (in)": float(round(disp_normal[i,j],4)),
+            "normal":    f"{{{nx[i,j]:.4f}, {ny[i,j]:.4f}, {nz_norm[i,j]:.4f}}}"
+        })
 
-# vec_df = pd.DataFrame(vec_rows)
-# st.subheader("Normal Vectors & Normal-Based Displacement")
-# st.dataframe(vec_df, use_container_width=True)
+vec_df = pd.DataFrame(vec_rows)
+st.subheader("Normal Vectors & Normal-Based Displacement")
+st.dataframe(vec_df, use_container_width=True)
 
 # # ── 4.14 3D Plot: curves + normal vectors ────────────────────
 # st.subheader("Actuator Curves with Surface Normals")
