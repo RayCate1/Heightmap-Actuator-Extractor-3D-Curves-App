@@ -52,9 +52,6 @@ if st.button("Process"):
         xs_mm = np.array([0.0])
     # 4.3b Convert actuator X positions to inches
     xs_in = xs_mm / 25.4
-    # 4.9 Convert outputs to Imperial
-    H_in = H_mm / 25.4
-    xs_in = xs_mm / 25.4
     # 4.4 Map into mesh coords
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
     xs_mesh = xmin + (xs_mm / bounds_width_mm) * (xmax - xmin)
@@ -96,7 +93,9 @@ if st.button("Process"):
                 H_mm[i] = H_mm[i-1]
             elif i < len(xs_mesh)-1 and not np.isnan(H_mm[i+1]).all():
                 H_mm[i] = H_mm[i+1]
-
+   # 4.9 Convert outputs to Imperial
+    H_in = H_mm / 25.4
+    xs_in = xs_mm / 25.4
     # NEW: apply the vertical shift if requested
     if shift_zero:
         half_y_span = (ymax - ymin) / 2.0
