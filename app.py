@@ -268,6 +268,7 @@ for i in range(len(xs_in)):
 fig.update_layout(
     scene=dict(
         xaxis_title="Actuator #",
+        xaxis=dict(autorange="reversed"),
         yaxis_title="Sample #",
         zaxis_title="Displaced Height (in)"
     ),
