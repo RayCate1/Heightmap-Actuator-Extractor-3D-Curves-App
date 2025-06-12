@@ -98,30 +98,7 @@ if st.button("Process"):
         rows.append(row)
     df = pd.DataFrame(rows)
     st.dataframe(df, use_container_width=True)
-
-    # 4.12 3D Plot: X=actuator #, Y=sample #, Z=height (in)
-    st.subheader("Actuator Curves in 3D")
-    fig = go.Figure()
-    samp = np.arange(nz)
-    for i in range(len(xs_in)):
-        fig.add_trace(go.Scatter3d(
-            x=np.full(nz, i+1),     # actuator number 1…N
-            y=samp,                  # sample (slice) index
-            z=H_in[i, :],            # height in inches
-            mode='lines',
-            name=f"Act {i+1}"
-        ))
-    fig.update_layout(
-        scene=dict(
-            xaxis_title="Actuator #",
-            xaxis=dict(autorange="reversed"),
-            yaxis_title="Sample #",
-            zaxis_title="Height (in)"
-        ),
-        height=600, margin=dict(l=20, r=20, t=40, b=20)
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
+    
 # ── 4.11 fit a spline through each actuator’s height curve and get dy/ds ────────────────
 s = np.arange(nz)                                 # parameter (slice index)
 vy = np.zeros_like(H_in)                          # will store dy/ds
@@ -217,6 +194,30 @@ st.dataframe(vec_df, use_container_width=True)
 #     margin=dict(l=20, r=20, t=40, b=20),
 # )
 # st.plotly_chart(fig, use_container_width=True)
+
+    # 4.12 3D Plot: X=actuator #, Y=sample #, Z=height (in)
+    st.subheader("Actuator Curves in 3D")
+    fig = go.Figure()
+    samp = np.arange(nz)
+    for i in range(len(xs_in)):
+        fig.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1),     # actuator number 1…N
+            y=samp,                  # sample (slice) index
+            z=H_in[i, :],            # height in inches
+            mode='lines',
+            name=f"Act {i+1}"
+        ))
+    fig.update_layout(
+        scene=dict(
+            xaxis_title="Actuator #",
+            xaxis=dict(autorange="reversed"),
+            yaxis_title="Sample #",
+            zaxis_title="Height (in)"
+        ),
+        height=600, margin=dict(l=20, r=20, t=40, b=20)
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
 
 # ── 2) MACHINE PARAMETERS (Imperial) ────────────────────────
 st.markdown("### Machine Parameters (Imperial Defaults)")
