@@ -56,7 +56,13 @@ if st.button("Process"):
     # 4.4 Map into mesh coords
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
     xs_mesh = xmin + (xs_mm / bounds_width_mm) * (xmax - xmin)
+    # physical slice spacing (inches)
+    ds_in = (zmax - zmin) / (nz - 1) / 25.4
     
+    # now when you compute vy, either
+    # A) use numpy.gradient with real spacing:
+    vy = np.gradient(H_in, ds_in, axis=1)      # ∂H/∂s_phys (inches per inch)
+
     # 4.5 Z slices
     zs = np.linspace(zmin, zmax, nz)
 
@@ -122,10 +128,10 @@ if st.button("Process"):
     # ── 4.13 Build normals & normal‐based displacement ─────────────────────
     thickness_in = comp_thickness
     # correct for y=s, z=H(s):
-    v_norm = np.sqrt(1 + vy**2)        # √(1 + (dH/ds)²)
-    nx     = np.zeros_like(vy)         # x–component still zero
-    ny     = -vy    / v_norm           # -- note the minus sign here
-    nz_norm  =  1.0    / v_norm 
+    v_norm   = np.sqrt(1 + vy**2)
+    nx       = np.zeros_like(vy)
+    ny       = -vy     / v_norm
+    nz_norm  =  1.0    / v_norm
     disp_normal = comp_thickness * v_norm    # thickness × √(1 + (dH/ds)²)
     theta_n     = np.arccos(np.clip(nz_norm, -1.0, 1.0))  # angle to vertical
 
