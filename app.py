@@ -197,8 +197,6 @@ with st.expander("Normal Vectors & Normal-Based Displacement", expanded=False):
 # st.plotly_chart(fig, use_container_width=True)
 # ── 4.14 Build & show “top”/“bottom”  height table ──
 
-# st.subheader("Displaced Height Data (inches) — Top & Bottom Curves")
-
 # half-displacement
 disp_half = disp_normal / 2.0   # shape (A, nz)
 
@@ -218,6 +216,7 @@ for i in range(A):
 
 disp_df = pd.DataFrame(disp_rows)
 with st.expander("Displaced Height Data (inches) — Top & Bottom Curves", expanded=False):
+    st.subheader("Displaced Height Data (inches) — Top & Bottom Curves")
     st.dataframe(disp_df, use_container_width=True)
     
     # 4.12 3D Plot: X=actuator #, Y=sample #, Z=height (in)
