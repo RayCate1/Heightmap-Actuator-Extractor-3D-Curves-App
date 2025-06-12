@@ -163,31 +163,36 @@ vy     = np.gradient(H_in, axis=1)       # shape (num_actuators, nz)
 slices = np.arange(nz)
 vz     = np.gradient(slices)             # shape (nz,)
 
-# vx is just zeros of the same shape as vy
+# vx is zeros (not used in disp calculation)
 vx = np.zeros_like(vy)
 
+# ── compute actuator displacement with clamp at small slopes ──
 thickness_in = comp_thickness             # in inches
-eps          = 1e-6                       # small floor to avoid divide-by-zero
+eps          = 1e-3                       # slope threshold
 
-abs_vy      = np.abs(vy)
-safe_vy     = np.where(abs_vy < eps, eps, abs_vy)
-# broadcast vz across actuators with [None, :]
-actuator_displacement = thickness_in * np.sqrt(vy**2 + vz[None, :]**2) / safe_vy
-# actuator_displacement.shape == (num_actuators, nz)
+abs_vy = np.abs(vy)
+# raw geometric ratio = sqrt(vy^2 + vz^2) / |vy|
+ratio  = np.sqrt(vy**2 + vz[None, :]**2) / abs_vy
 
-# ── build a flat table of vectors ─────────────────────────────
+# clamp any tiny vertical‐slopes to ratio=1
+ratio  = np.where(abs_vy < eps, 1.0, ratio)
+
+actuator_displacement = thickness_in * ratio
+# ⇒ shape (num_actuators, nz)
+
+# ── build flat table of velocity vectors & displacement ────────
 vec_rows = []
 for i in range(len(xs_in)):        # each actuator
     for j in range(nz):            # each slice
-        vy_ij    = vy[i, j]
-        vz_j     = vz[j]
-        disp_ij  = actuator_displacement[i, j]
+        vy_ij   = vy[i, j]
+        vz_j    = vz[j]
+        disp_ij = actuator_displacement[i, j]
         vec_rows.append({
             "Actuator": i+1,
             "Slice":    j,
             "vx":       0.0,
-            "vy":       float(round(vy_ij, 4)),
-            "vz":       float(round(vz_j, 4)),
+            "vy":       float(round(vy_ij,   4)),
+            "vz":       float(round(vz_j,    4)),
             "disp":     float(round(disp_ij, 4)),
             "vector":   f"{{0, {vy_ij:.4f}, {vz_j:.4f}}}"
         })
