@@ -23,7 +23,11 @@ with b1:
 with b2:
     num_actuators = st.number_input("Number of Actuators", min_value=1, value=10, step=1)
     nz            = st.slider("Z-Resolution (# slices)", 10, 10_000, 200)
-
+    # NEW: checkbox to shift zero
+    shift_zero = st.checkbox(
+        "Re-zero at mid-height (shift all heights down by half the bounding-box Y)", 
+        value=False
+    )
 # ── 4) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
     if not uploaded:
@@ -52,12 +56,6 @@ if st.button("Process"):
     # 4.4 Map into mesh coords
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
     xs_mesh = xmin + (xs_mm / bounds_width_mm) * (xmax - xmin)
-
-    # NEW: checkbox to shift zero
-    shift_zero = st.checkbox(
-        "Re-zero at mid-height (shift all heights down by half the bounding-box Y)", 
-        value=False
-    )
     
     # 4.5 Z slices
     zs = np.linspace(zmin, zmax, nz)
