@@ -219,15 +219,14 @@ for i in range(A):
 disp_df = pd.DataFrame(disp_rows)
 with st.expander("Displaced Height Data (inches) — Top & Bottom Curves", expanded=False):
     st.dataframe(disp_df, use_container_width=True)
-    # 4.12 3D Plot: X=actuator #, Y=sample #, Z=height (in)
-st.subheader("Actuator Curves in 3D")
+# 4.12 3D Plot: X=actuator #, Y=sample #, Z=height (in)
 fig = go.Figure()
 samp = np.arange(nz)
 for i in range(len(xs_in)):
     fig.add_trace(go.Scatter3d(
-        x=np.full(nz, i+1),     # actuator number 1…N
-        y=samp,                  # sample (slice) index
-        z=H_in[i, :],            # height in inches
+        x=np.full(nz, i+1),
+        y=samp,
+        z=H_in[i, :],
         mode='lines',
         name=f"Act {i+1}"
     ))
@@ -240,8 +239,11 @@ fig.update_layout(
     ),
     height=600, margin=dict(l=20, r=20, t=40, b=20)
 )
+
 with st.expander("Actuator Curves in 3D", expanded=False):
+    st.subheader("Actuator Curves in 3D")
     st.plotly_chart(fig, use_container_width=True)
+
 # ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
 st.subheader("Displaced Actuator Curves in 3D")
 fig = go.Figure()
