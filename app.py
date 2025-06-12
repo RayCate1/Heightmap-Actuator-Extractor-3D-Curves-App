@@ -241,6 +241,42 @@ fig.update_layout(
 )
 st.plotly_chart(fig, use_container_width=True)
 
+# ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
+st.subheader("Displaced Actuator Curves in 3D")
+fig = go.Figure()
+samp = np.arange(nz)
+
+for i in range(len(xs_in)):
+    top_z = H_in[i, :] + disp_normal[i, :] / 2
+    bot_z = H_in[i, :] - disp_normal[i, :] / 2
+
+    fig.add_trace(go.Scatter3d(
+        x=np.full(nz, i+1),
+        y=samp,
+        z=top_z,
+        mode='lines',
+        name=f"Act {i+1} Top"
+    ))
+    fig.add_trace(go.Scatter3d(
+        x=np.full(nz, i+1),
+        y=samp,
+        z=bot_z,
+        mode='lines',
+        name=f"Act {i+1} Bottom"
+    ))
+
+fig.update_layout(
+    scene=dict(
+        xaxis_title="Actuator #",
+        xaxis=dict(autorange="reversed"),
+        yaxis_title="Sample #",
+        zaxis_title="Displaced Height (in)"
+    ),
+    height=600,
+    margin=dict(l=20, r=20, t=40, b=20)
+)
+st.plotly_chart(fig, use_container_width=True)
+
 
 # ── 2) MACHINE PARAMETERS (Imperial) ────────────────────────
 st.markdown("### Machine Parameters (Imperial Defaults)")
