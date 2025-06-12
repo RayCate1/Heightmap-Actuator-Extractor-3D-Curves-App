@@ -98,7 +98,8 @@ if st.button("Process"):
         rows.append(row)
     df = pd.DataFrame(rows)
     st.dataframe(df, use_container_width=True)
-    
+    with st.expander("Parent Height Data (inches)", expanded=False):
+    st.dataframe(df, use_container_width=True)
 # ── 4.11 fit a spline through each actuator’s height curve and get dy/ds ────────────────
 s = np.arange(nz)                                 # parameter (slice index)
 vy = np.zeros_like(H_in)                          # will store dy/ds
