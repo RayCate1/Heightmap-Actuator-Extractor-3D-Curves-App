@@ -89,18 +89,18 @@ if st.button("Process"):
     xs_in = xs_mm / 25.4
 
     # 4.11 Heights table (inches)
-rows = []
-for i, xi in enumerate(xs_in, start=1):
-    row = {"Actuator": i, "X (in)": float(round(xi, 3))}
-    for j in range(nz):
-        v = H_in[i-1, j]
-        row[f"Z[{j}]"] = None if np.isnan(v) else float(round(v, 3))
-    rows.append(row)
-df = pd.DataFrame(rows)
+    rows = []
+    for i, xi in enumerate(xs_in, start=1):
+        row = {"Actuator": i, "X (in)": float(round(xi, 3))}
+        for j in range(nz):
+            v = H_in[i-1, j]
+            row[f"Z[{j}]"] = None if np.isnan(v) else float(round(v, 3))
+        rows.append(row)
+    df = pd.DataFrame(rows)
+    with st.expander("Parent Height Data (inches)", expanded=False):
+        st.subheader("Parent Height Data (inches)")
+        st.dataframe(df, use_container_width=True)
 
-with st.expander("Parent Height Data (inches)", expanded=False):
-    st.subheader("Parent Height Data (inches)")
-    st.dataframe(df, use_container_width=True)
 # ── 4.11 fit a spline through each actuator’s height curve and get dy/ds ────────────────
 s = np.arange(nz)                                 # parameter (slice index)
 vy = np.zeros_like(H_in)                          # will store dy/ds
