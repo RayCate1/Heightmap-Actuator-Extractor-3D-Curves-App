@@ -197,7 +197,7 @@ if st.button("Process"):
         u=Ug, v=Vg, w=Wg,
         anchor="tail",
         sizemode="absolute",
-        sizeref=0.5,      # tweak this to make arrows longer/shorter
+        sizeref=5,      # tweak this to make arrows longer/shorter
         showscale=False
     ))
 
