@@ -174,3 +174,4 @@ st.download_button(
     vel_df = pd.DataFrame(vel_rows)
     st.subheader("Velocity Data (inches per sample)")
     st.dataframe(vel_df, use_container_width=True)
+
