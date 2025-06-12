@@ -21,6 +21,7 @@ with b1:
 with b2:
     num_actuators = st.number_input("Number of Actuators", min_value=1, value=10, step=1)
     nz            = st.slider("Z-Resolution (# slices)", 10, 10_000, 200)
+    comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
 
 # ── 4) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
@@ -132,7 +133,6 @@ with col2:
     resin_ratio    = st.text_input("Resin:Fiber Ratio", value="1:1")
     comp_force     = st.number_input("Compressive Force (psi)", value=15.0)
 with col3:
-    comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
     dye_thickness  = st.number_input("Dye Thickness (in)", value=0.0)
 
         # Params JSON (all Imperial)
@@ -168,19 +168,23 @@ vx = np.zeros_like(vy)
 
 # ── build a flat table of vectors ─────────────────────────────
 vec_rows = []
-for i in range(len(xs_in)):        # actuator index
-    for j in range(nz):            # slice index
+for i in range(len(xs_in)):
+    for j in range(nz):
+        vy_ij = vy[i, j]
+        vz_j  = vz[j]
+        disp  = actuator_displacement[i, j]
         vec_rows.append({
-            "Actuator":   i+1,
-            "Slice":      j,
-            "vx":         0.0,
-            "vy":         float(round(vy[i, j], 4)),
-            "vz":         float(round(vz[j],     4)),
-            "vector":     f"{{0, {vy[i,j]:.4f}, {vz[j]:.4f}}}"
+            "Actuator": i+1,
+            "Slice":    j,
+            "vx":       0.0,
+            "vy":       float(round(vy_ij, 4)),
+            "vz":       float(round(vz_j, 4)),
+            "disp":     float(round(disp, 4)),
+            "vector":   f"{{0, {vy_ij:.4f}, {vz_j:.4f}}}"
         })
 
 vec_df = pd.DataFrame(vec_rows)
-
-st.subheader("Velocity Vectors (inches per sample)")
+st.subheader("Velocity & Displacement")
 st.dataframe(vec_df, use_container_width=True)
+
 
