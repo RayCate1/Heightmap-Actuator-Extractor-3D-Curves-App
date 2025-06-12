@@ -269,7 +269,6 @@ fig.update_layout(
     scene=dict(
         xaxis_title="Actuator #",
         yaxis_title="Sample #",
-        zaxis=dict(autorange="reversed"),
         zaxis_title="Displaced Height (in)"
     ),
     height=600,
