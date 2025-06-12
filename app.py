@@ -159,28 +159,37 @@ st.download_button(
         mime="application/json"
 )
 # ── compute height‐derivative (vy) and slice‐derivative (vz) ──
-vy = np.gradient(H_in, axis=1)         # shape (num_actuators, nz)
+vy     = np.gradient(H_in, axis=1)       # shape (num_actuators, nz)
 slices = np.arange(nz)
-vz = np.gradient(slices)               # 1.0 everywhere, shape (nz,)
+vz     = np.gradient(slices)             # shape (nz,)
 
 # vx is just zeros of the same shape as vy
 vx = np.zeros_like(vy)
 
-disp = thickness * np.sqrt(by**2 + bz**2) / np.abs(by)
+# ── compute actuator displacement safely ─────────────────────
+thickness_in = comp_thickness             # in inches
+eps          = 1e-6                       # small floor to avoid divide-by-zero
+
+abs_vy      = np.abs(vy)
+safe_vy     = np.where(abs_vy < eps, eps, abs_vy)
+# broadcast vz across actuators with [None, :]
+actuator_displacement = thickness_in * np.sqrt(vy**2 + vz[None, :]**2) / safe_vy
+# actuator_displacement.shape == (num_actuators, nz)
+
 # ── build a flat table of vectors ─────────────────────────────
 vec_rows = []
-for i in range(len(xs_in)):
-    for j in range(nz):
-        vy_ij = vy[i, j]
-        vz_j  = vz[j]
-        disp  = disp[i, j]
+for i in range(len(xs_in)):        # each actuator
+    for j in range(nz):            # each slice
+        vy_ij    = vy[i, j]
+        vz_j     = vz[j]
+        disp_ij  = actuator_displacement[i, j]
         vec_rows.append({
             "Actuator": i+1,
             "Slice":    j,
             "vx":       0.0,
             "vy":       float(round(vy_ij, 4)),
             "vz":       float(round(vz_j, 4)),
-            "disp":     float(round(disp, 4)),
+            "disp":     float(round(disp_ij, 4)),
             "vector":   f"{{0, {vy_ij:.4f}, {vz_j:.4f}}}"
         })
 
