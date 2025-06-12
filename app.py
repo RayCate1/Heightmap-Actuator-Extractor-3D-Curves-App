@@ -240,8 +240,8 @@ fig.update_layout(
     ),
     height=600, margin=dict(l=20, r=20, t=40, b=20)
 )
-st.plotly_chart(fig, use_container_width=True)
-
+with st.expander("Actuator Curves in 3D", expanded=False):
+    st.plotly_chart(fig, use_container_width=True)
 # ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
 st.subheader("Displaced Actuator Curves in 3D")
 fig = go.Figure()
