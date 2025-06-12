@@ -35,13 +35,13 @@ if st.button("Process"):
         st.stop()
 
     # 4.1 Convert bounds (ft→mm)
-    bounds_width_mm  = width_val  * 304.8
+    bounds_width_mm  = width_val  * 304.8 
     bounds_height_mm = height_val * 304.8
 
     # 4.2 Load mesh
     mesh = trimesh.load(BytesIO(uploaded.read()),
                         file_type=uploaded.name.split('.')[-1])
-    if mesh.is_empty:
+    if mesh.is_empty: #if mesh is empty
         st.error("Mesh is empty.")
         st.stop()
 
@@ -147,6 +147,30 @@ if st.button("Process"):
         st.subheader("Normal Vectors & Normal-Based Displacement")
         st.dataframe(vec_df, use_container_width=True)
 
+    # ── 4.12 3D Plot: X=actuator #, Y=sample #, Z=height (in) ──
+    st.subheader("Actuator Curves in 3D")
+    fig = go.Figure()
+    samp = np.arange(nz)
+    for i in range(len(xs_in)):
+        fig.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1),     # actuator number 1…N
+            y=samp,                  # sample (slice) index
+            z=H_in[i, :],            # height in inches
+            mode='lines',
+            name=f"Act {i+1}"
+        ))
+    fig.update_layout(
+        scene=dict(
+            xaxis_title="Actuator #",
+            xaxis=dict(autorange="reversed"),
+            yaxis_title="Sample #",
+            zaxis_title="Height (in)"
+        ),
+        height=600, margin=dict(l=20, r=20, t=40, b=20)
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    
     # ── 4.14 Build & show “top”/“bottom” height table ─────────────────────────
     disp_half = disp_normal / 2.0
     disp_rows = []
