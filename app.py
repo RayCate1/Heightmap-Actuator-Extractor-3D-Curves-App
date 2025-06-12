@@ -158,20 +158,19 @@ st.download_button(
         file_name="params.json",
         mime="application/json"
 )
-    # ── 4.11 Compute velocity (inches per sample) ───────────────
-    # V has same shape as H_in: V[i,j] ≈ (H_in[i,j+1] – H_in[i,j-1]) / 2
-    V = np.gradient(H_in, axis=1)
+# ── 4.11 Compute velocity (inches per sample) ───────────────
+# V has same shape as H_in: V[i,j] ≈ (H_in[i,j+1] – H_in[i,j-1]) / 2
+V = np.gradient(H_in, axis=1)
 
-    # ── 4.12 Show velocity table ────────────────────────────────
-    vel_rows = []
-    for i, xi in enumerate(xs_in, start=1):
-        row = {"Actuator": i}
-        for j in range(nz):
-            v = V[i-1, j]
-            row[f"V[{j}]"] = None if np.isnan(v) else float(round(v, 4))
-        vel_rows.append(row)
+# ── 4.12 Show velocity table ────────────────────────────────
+vel_rows = []
+for i, xi in enumerate(xs_in, start=1):
+    row = {"Actuator": i}
+    for j in range(nz):
+        v = V[i-1, j]
+        row[f"V[{j}]"] = None if np.isnan(v) else float(round(v, 4))
+    vel_rows.append(row)
 
-    vel_df = pd.DataFrame(vel_rows)
-    st.subheader("Velocity Data (inches per sample)")
-    st.dataframe(vel_df, use_container_width=True)
-
+vel_df = pd.DataFrame(vel_rows)
+st.subheader("Velocity Data (inches per sample)")
+st.dataframe(vel_df, use_container_width=True)
