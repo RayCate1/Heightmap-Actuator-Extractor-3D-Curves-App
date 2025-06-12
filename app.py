@@ -88,13 +88,6 @@ if st.button("Process"):
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
     
-    # physical slice spacing (inches)
-    ds_in = (zmax - zmin) / (nz - 1) / 25.4
-    
-    # now when you compute vy, either
-    # A) use numpy.gradient with real spacing:
-    vy = np.gradient(H_in, ds_in, axis=1)      # ∂H/∂s_phys (inches per inch)
-
     # 4.5 Z slices
     zs = np.linspace(zmin, zmax, nz)
     # NEW: apply the vertical shift if requested
