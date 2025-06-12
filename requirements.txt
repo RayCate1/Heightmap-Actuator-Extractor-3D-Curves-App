@@ -2,3 +2,4 @@ trimesh
 streamlit
 plotly
 rtree
+UnivariateSpline
