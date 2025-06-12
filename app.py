@@ -121,12 +121,13 @@ if st.button("Process"):
 
     # ── 4.13 Build normals & normal‐based displacement ─────────────────────
     thickness_in = comp_thickness
-    v_norm       = np.sqrt(vy**2 + 1.0)         # √(1 + (dy/ds)²)
-    nx           = np.zeros_like(vy)
-    ny           = 1.0    / v_norm              # y‐component of unit normal
-    nz_norm      = -vy   / v_norm               # z‐component of unit normal
-    disp_normal  = thickness_in * v_norm        # thickness × √(1+(dy/ds)²)
-    theta_n      = np.arccos(np.clip(ny, -1.0, 1.0))
+    # correct for y=s, z=H(s):
+    v_norm = np.sqrt(1 + vy**2)        # √(1 + (dH/ds)²)
+    nx     = np.zeros_like(vy)         # x–component still zero
+    ny     = -vy    / v_norm           # -- note the minus sign here
+    nz     =  1.0   / v_norm
+    disp_normal = comp_thickness * v_norm    # thickness × √(1 + (dH/ds)²)
+    theta_n     = np.arccos(np.clip(nz_norm, -1.0, 1.0))  # angle to vertical
 
     vec_rows = []
     A = len(xs_in)
