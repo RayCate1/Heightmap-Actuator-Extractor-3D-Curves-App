@@ -166,6 +166,7 @@ vz = np.gradient(slices)               # 1.0 everywhere, shape (nz,)
 # vx is just zeros of the same shape as vy
 vx = np.zeros_like(vy)
 
+actuator_displacement = comp_thickness * np.sqrt(vy**2 + vz[np.newaxis, :]**2) / vy
 # ── build a flat table of vectors ─────────────────────────────
 vec_rows = []
 for i in range(len(xs_in)):
