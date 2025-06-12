@@ -81,17 +81,19 @@ if st.button("Process"):
         if len(idxs):
             H_mm[i, idxs] = locs[:, 1]
 
-    # 4.8 Fill any fully-empty actuator rows
+       # 4.8 Fill any fully-empty actuator rows
     for i in range(len(xs_mesh)):
         if np.isnan(H_mm[i]).all():
-            if i > 0 and not np.isnan(H_mm[i - 1]).all():
-                H_mm[i] = H_mm[i - 1]
-            elif i < len(xs_mesh) - 1 and not np.isnan(H_mm[i + 1]).all():
-                H_mm[i] = H_mm[i + 1]
+            if i > 0 and not np.isnan(H_mm[i-1]).all():
+                H_mm[i] = H_mm[i-1]
+            elif i < len(xs_mesh)-1 and not np.isnan(H_mm[i+1]).all():
+                H_mm[i] = H_mm[i+1]
+
     # NEW: apply the vertical shift if requested
     if shift_zero:
         half_y_span = (ymax - ymin) / 2.0
         H_mm = H_mm - half_y_span
+
     # 4.9 Convert outputs to Imperial
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
@@ -101,7 +103,7 @@ if st.button("Process"):
     for i, xi in enumerate(xs_in, start=1):
         row = {"Actuator": i, "X (in)": float(round(xi, 3))}
         for j in range(nz):
-            v = H_in[i - 1, j]
+            v = H_in[i-1, j]
             row[f"Z[{j}]"] = None if np.isnan(v) else float(round(v, 3))
         rows.append(row)
     df = pd.DataFrame(rows)
@@ -109,36 +111,38 @@ if st.button("Process"):
         st.subheader("Parent Height Data (inches)")
         st.dataframe(df, use_container_width=True)
 
-# ── fit a spline and compute dy/ds ───────────────────────────
-s      = np.arange(nz)
-vy     = np.zeros_like(H_in)
-for i in range(A):
-    H_i      = H_in[i, :]
-    spline   = UnivariateSpline(s, H_i, k=3, s=0)
-    vy[i, :] = spline.derivative(n=1)(s)
+    # ── 4.12 Fit a spline through each actuator’s height curve and get dy/ds ──
+    s  = np.arange(nz)                          # parameter (slice index)
+    vy = np.zeros_like(H_in)                    # will store dy/ds
+    for i in range(len(xs_in)):
+        H_i      = H_in[i, :]
+        spline   = UnivariateSpline(s, H_i, k=3, s=0)
+        vy[i, :] = spline.derivative(n=1)(s)
 
-# ── build normals & displacement ─────────────────────────────
-v_norm     = np.sqrt(vy**2 + 1.0)      # √(1 + (dy/ds)²)
-nx         = np.zeros_like(vy)
-ny         = 1.0    / v_norm           # y‐component of the unit normal
-nz_norm    = -vy    / v_norm           # z‐component of the unit normal
-disp_normal= comp_thickness * v_norm    # thickness × √(1 + (dy/ds)²)
+    # ── 4.13 Build normals & normal‐based displacement ─────────────────────
+    thickness_in = comp_thickness
+    v_norm       = np.sqrt(vy**2 + 1.0)         # √(1 + (dy/ds)²)
+    nx           = np.zeros_like(vy)
+    ny           = 1.0    / v_norm              # y‐component of unit normal
+    nz_norm      = -vy   / v_norm               # z‐component of unit normal
+    disp_normal  = thickness_in * v_norm        # thickness × √(1+(dy/ds)²)
+    theta_n      = np.arccos(np.clip(ny, -1.0, 1.0))
 
-# ── optional: log one row to debug ──────────────────────────
-st.write("DEBUG normal[0,:5]:", nx[0,:5], ny[0,:5], nz_norm[0,:5])
+    # optional debug
+    st.write("DEBUG normal[0,:5]:", nx[0,:5], ny[0,:5], nz_norm[0,:5])
 
     vec_rows = []
     A = len(xs_in)
     for i in range(A):
         for j in range(nz):
             vec_rows.append({
-                "Actuator":  i + 1,
+                "Actuator":  i+1,
                 "Slice":     j,
-                "nx":        float(round(nx[i, j], 4)),
-                "ny":        float(round(ny[i, j], 4)),
-                "nz":        float(round(nz_norm[i, j], 4)),
-                "θₙ (rad)":  float(round(theta_n[i, j], 4)),
-                "disp (in)": float(round(disp_normal[i, j], 4)),
+                "nx":        float(round(nx[i, j],     4)),
+                "ny":        float(round(ny[i, j],     4)),
+                "nz":        float(round(nz_norm[i, j],4)),
+                "θₙ (rad)":  float(round(theta_n[i, j],4)),
+                "disp (in)": float(round(disp_normal[i, j],4)),
                 "normal":    f"{{{nx[i, j]:.4f}, {ny[i, j]:.4f}, {nz_norm[i, j]:.4f}}}"
             })
     vec_df = pd.DataFrame(vec_rows)
