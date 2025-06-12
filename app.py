@@ -3,8 +3,9 @@ import numpy as np
 import trimesh
 import pandas as pd
 import json
-from io import BytesIO
 import plotly.graph_objects as go
+from io import BytesIO
+from scipy.interpolate import UnivariateSpline
 
 st.set_page_config(layout="wide")
 st.title("Heightmap Actuator Extractor & 3D Curves m ")
@@ -121,27 +122,33 @@ if st.button("Process"):
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# ── 4.11 compute height‐derivative (dy/ds) ────────────────
-vy     = np.gradient(H_in, axis=1)       # ∂y/∂s, shape (A, nz)
-slices = np.arange(nz)
-# note: ds/ds = 1 → we never need vz here
+# ── 4.11 fit a spline through each actuator’s height curve and get dy/ds ────────────────
+s = np.arange(nz)                                 # parameter (slice index)
+vy = np.zeros_like(H_in)                          # will store dy/ds
 
-# ── 4.12 build normal & normal‐based displacement ──────────
-thickness_in = comp_thickness             # inches
+for i in range(len(xs_in)):
+    H_i = H_in[i, :]                              # heights for actuator i
+    # cubic spline, exact fit (no smoothing)
+    spline = UnivariateSpline(s, H_i, k=3, s=0)
+    # analytic first derivative at each s
+    vy[i, :] = spline.derivative(n=1)(s)
+
+# ── 4.12 build normals & normal‐based displacement ──────────
+thickness_in = comp_thickness                      # inches
 
 # arc‐length factor ‖r′(s)‖ = sqrt((dy/ds)^2 + 1)
-v_norm = np.sqrt(vy**2 + 1.0)             # shape (A, nz)
+v_norm    = np.sqrt(vy**2 + 1.0)                   # shape (A, nz)
 
 # unit normal N = (0, 1, -dy/ds) / ‖r′(s)‖
-nx = np.zeros_like(vy)
-ny = 1.0    / v_norm
-nz_norm = -vy / v_norm
+nx        = np.zeros_like(vy)
+ny        = 1.0    / v_norm
+nz_norm   = -vy    / v_norm
 
 # displacement along the normal = thickness * ‖r′(s)‖
-disp_normal = thickness_in * v_norm       # shape (A, nz)
+disp_normal = thickness_in * v_norm                # shape (A, nz)
 
-# angle between N and vertical = arccos( N·(0,1,0) ) = arccos(ny)
-theta_n = np.arccos(np.clip(ny, -1.0, 1.0))
+# angle between N and vertical = arccos(ny)
+theta_n     = np.arccos(np.clip(ny, -1.0, 1.0))     # radians
 
 # ── 4.13 build flat table of normals + θ + disp ────────────
 vec_rows = []
