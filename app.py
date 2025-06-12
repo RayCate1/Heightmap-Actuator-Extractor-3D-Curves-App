@@ -200,7 +200,7 @@ for i in range(A):
 vec_df = pd.DataFrame(vec_rows)
 st.subheader("Normal Vectors & Normal-Based Displacement")
 st.dataframe(vec_df, use_container_width=True)
-
+'''
 # ── 4.14 3D Plot: curves + normal vectors ────────────────────
 st.subheader("Actuator Curves with Surface Normals")
 
@@ -234,7 +234,7 @@ fig.add_trace(go.Cone(
     w=Wg.flatten(),
     anchor="tail",
     sizemode="absolute",
-    sizeref=0.5,      # adjust to scale your normals
+    sizeref=10,      # adjust to scale your normals
     showscale=False
 ))
 
@@ -248,4 +248,4 @@ fig.update_layout(
     margin=dict(l=20, r=20, t=40, b=20),
 )
 st.plotly_chart(fig, use_container_width=True)
-
+'''
