@@ -55,7 +55,8 @@ if st.button("Process"):
     # 4.4 Map into mesh coords
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
     xs_mesh = xmin + (xs_mm / bounds_width_mm) * (xmax - xmin)
-
+    # 4.5 Z slices
+    zs = np.linspace(zmin, zmax, nz)
     # 4.6 Nudge inwards
     if num_actuators > 1:
         span    = xmax - xmin
@@ -88,12 +89,24 @@ if st.button("Process"):
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
     
-    # 4.5 Z slices
-    zs = np.linspace(zmin, zmax, nz)
     # NEW: apply the vertical shift if requested
     if shift_zero:
         half_y_span = (ymax - ymin) / 2.0
         H_mm = H_mm - half_y_span
+    # inside `if st.button("Process"):` block
+    
+    # physical slice spacing (inches)
+    ds_in = (zmax - zmin) / (nz - 1) / 25.4
+    
+    # now when you compute vy, either
+    # A) use numpy.gradient with real spacing:
+    vy = np.gradient(H_in, ds_in, axis=1)      # ∂H/∂s_phys (inches per inch)
+    
+    # or B) if you prefer splines, fit against real s-coordinates:
+    s_phys = np.linspace(zmin, zmax, nz) / 25.4
+    for i in range(A):
+        spline = UnivariateSpline(s_phys, H_in[i, :], k=3, s=0)
+        vy[i, :] = spline.derivative(1)(s_phys)
 
     # ── 4.11 Heights table (inches) ─────────────────────────
     rows = []
