@@ -173,7 +173,7 @@ for i in range(len(xs_in)):
     for j in range(nz):
         vy_ij = vy[i, j]
         vz_j  = vz[j]
-        disp  = actuator_displacement[i, j]
+        disp  = disp[i, j]
         vec_rows.append({
             "Actuator": i+1,
             "Slice":    j,
