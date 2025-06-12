@@ -7,7 +7,7 @@ from io import BytesIO
 import plotly.graph_objects as go
 
 st.set_page_config(layout="wide")
-st.title("Heightmap Actuator Extractor & 3D Curves")
+st.title("Heightmap Actuator Extractor & 3D Curves m")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in mm)", type=["stl","obj"])
@@ -116,8 +116,7 @@ if st.button("Process"):
             yaxis_title="Sample #",
             zaxis_title="Height (in)"
         ),
-        height=600,
-        margin=dict(l=20, r=20, t=40, b=20)
+        height=600, margin=dict(l=20, r=20, t=40, b=20)
     )
     st.plotly_chart(fig, use_container_width=True)
 
