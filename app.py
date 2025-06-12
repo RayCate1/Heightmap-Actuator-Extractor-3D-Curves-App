@@ -129,6 +129,7 @@ disp_normal = thickness_in * v_norm                # shape (A, nz)
 theta_n     = np.arccos(np.clip(ny, -1.0, 1.0))     # radians
 
 # ── 4.13 build flat table of normals + θ + disp ────────────
+st.subheader("Normal Vectors & Normal-Based Displacement")
 vec_rows = []
 A = len(xs_in)
 for i in range(A):
@@ -145,9 +146,8 @@ for i in range(A):
         })
 
 vec_df = pd.DataFrame(vec_rows)
-st.subheader("Normal Vectors & Normal-Based Displacement")
-st.dataframe(vec_df, use_container_width=True)
-
+with st.expander("Parent Height Data (inches)", expanded=False):
+    st.dataframe(vec_df, use_container_width=True)
 # # ── 4.14 3D Plot: curves + normal vectors ────────────────────
 # st.subheader("Actuator Curves with Surface Normals")
 
