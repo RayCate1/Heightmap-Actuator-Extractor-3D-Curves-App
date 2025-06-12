@@ -8,7 +8,7 @@ from io import BytesIO
 from scipy.interpolate import UnivariateSpline
 
 st.set_page_config(layout="wide")
-st.title("Heightmap Actuator Extractor & 3D Curvesm ")
+st.title("Heightmap Actuator Extractor & 3D Curves")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in mm)", type=["stl","obj"])
@@ -207,7 +207,7 @@ for i in range(len(xs_in)):
         mode='lines',
         name=f"Act {i+1}"
     ))
- fig.update_layout(
+fig.update_layout(
     scene=dict(
         xaxis_title="Actuator #",
         xaxis=dict(autorange="reversed"),
