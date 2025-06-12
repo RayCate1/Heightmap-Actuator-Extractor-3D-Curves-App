@@ -121,44 +121,6 @@ if st.button("Process"):
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# ── 2) MACHINE PARAMETERS (Imperial) ────────────────────────
-st.markdown("### Machine Parameters (Imperial Defaults)")
-col1, col2, col3 = st.columns(3)
-with col1:
-    after_temp     = st.number_input("After-Dye Temperature (°F)", value=338.0)
-    dye_temp       = st.number_input("Dye Temperature (°F)", value=302.0)
-    wet_temp       = st.number_input("Wet Fiber Temperature (°F)", value=59.0)
-with col2:
-    pull_speed     = st.number_input("Pull Speed (in/min)", value=15.0, format="%.2f")
-    resin_ratio    = st.text_input("Resin:Fiber Ratio", value="1:1")
-    comp_force     = st.number_input("Compressive Force (psi)", value=15.0)
-with col3:
-    dye_thickness  = st.number_input("Dye Thickness (in)", value=0.0)
-
-        # Params JSON (all Imperial)
-params = {
-        "model_file":            uploaded.name,
-        "pull_speed_in_per_min": pull_speed,
-        "dye_temperature_F":     dye_temp,
-        "wet_fiber_temp_F":      wet_temp,
-        "after_dye_temp_F":      after_temp,
-        "resin_to_fiber_ratio":  resin_ratio,
-        "compressive_force_psi": comp_force,
-        "composite_thickness_in": comp_thickness,
-        "dye_thickness_in":      dye_thickness,
-        "bounds_width_ft":       width_val,
-        "bounds_height_ft":      height_val,
-        "number_of_actuators":   num_actuators,
-        "z_resolution":          nz
-}
-st.subheader("Machine Params JSON")
-st.download_button(
-        "Download params.json",
-        data=json.dumps(params, indent=2),
-        file_name="params.json",
-        mime="application/json"
-)
-
 # ── 4.11 compute height‐derivative (dy/ds) ────────────────
 vy     = np.gradient(H_in, axis=1)       # ∂y/∂s, shape (A, nz)
 slices = np.arange(nz)
@@ -248,3 +210,41 @@ st.dataframe(vec_df, use_container_width=True)
 #     margin=dict(l=20, r=20, t=40, b=20),
 # )
 # st.plotly_chart(fig, use_container_width=True)
+
+# ── 2) MACHINE PARAMETERS (Imperial) ────────────────────────
+st.markdown("### Machine Parameters (Imperial Defaults)")
+col1, col2, col3 = st.columns(3)
+with col1:
+    after_temp     = st.number_input("After-Dye Temperature (°F)", value=338.0)
+    dye_temp       = st.number_input("Dye Temperature (°F)", value=302.0)
+    wet_temp       = st.number_input("Wet Fiber Temperature (°F)", value=59.0)
+with col2:
+    pull_speed     = st.number_input("Pull Speed (in/min)", value=15.0, format="%.2f")
+    resin_ratio    = st.text_input("Resin:Fiber Ratio", value="1:1")
+    comp_force     = st.number_input("Compressive Force (psi)", value=15.0)
+with col3:
+    dye_thickness  = st.number_input("Dye Thickness (in)", value=0.0)
+
+        # Params JSON (all Imperial)
+params = {
+        "model_file":            uploaded.name,
+        "pull_speed_in_per_min": pull_speed,
+        "dye_temperature_F":     dye_temp,
+        "wet_fiber_temp_F":      wet_temp,
+        "after_dye_temp_F":      after_temp,
+        "resin_to_fiber_ratio":  resin_ratio,
+        "compressive_force_psi": comp_force,
+        "composite_thickness_in": comp_thickness,
+        "dye_thickness_in":      dye_thickness,
+        "bounds_width_ft":       width_val,
+        "bounds_height_ft":      height_val,
+        "number_of_actuators":   num_actuators,
+        "z_resolution":          nz
+}
+st.subheader("Machine Params JSON")
+st.download_button(
+        "Download params.json",
+        data=json.dumps(params, indent=2),
+        file_name="params.json",
+        mime="application/json"
+)
