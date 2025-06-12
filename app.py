@@ -158,45 +158,56 @@ st.download_button(
         file_name="params.json",
         mime="application/json"
 )
+
 # ── compute height‐derivative (vy) and slice‐derivative (vz) ──
 vy     = np.gradient(H_in, axis=1)       # shape (num_actuators, nz)
 slices = np.arange(nz)
-vz     = np.gradient(slices)             # shape (nz,)
+vz     = np.gradient(slices)             # shape (nz,) — all ones
 
-# vx is zeros (not used in disp calculation)
+# vx is zeros (not used)
 vx = np.zeros_like(vy)
 
-# ── compute actuator displacement with clamp at small slopes ──
+# ── compute actuator displacement with clamp ─────────────────
 thickness_in = comp_thickness             # in inches
 eps          = 1e-3                       # slope threshold
 
 abs_vy = np.abs(vy)
 # raw geometric ratio = sqrt(vy^2 + vz^2) / |vy|
 ratio  = np.sqrt(vy**2 + vz[None, :]**2) / abs_vy
-
-# clamp any tiny vertical‐slopes to ratio=1
 ratio  = np.where(abs_vy < eps, 1.0, ratio)
-
 actuator_displacement = thickness_in * ratio
-# ⇒ shape (num_actuators, nz)
+# shape (num_actuators, nz)
 
-# ── build flat table of velocity vectors & displacement ────────
+# ── compute angle θ between (0,1,0) and (0,vy,vz) ─────────────
+# cosθ = vy / sqrt(vy^2 + vz^2)
+mag = np.sqrt(vy**2 + vz[None, :]**2)
+# avoid division by zero
+mag_safe = np.where(mag == 0, 1e-6, mag)
+cos_theta = vy / mag_safe
+# clamp into [-1,1]
+cos_theta = np.clip(cos_theta, -1.0, 1.0)
+theta = np.arccos(cos_theta)  # in radians, shape (num_actuators, nz)
+
+# ── build flat table of velocity vectors, θ & displacement ────
 vec_rows = []
 for i in range(len(xs_in)):        # each actuator
     for j in range(nz):            # each slice
-        vy_ij   = vy[i, j]
-        vz_j    = vz[j]
-        disp_ij = actuator_displacement[i, j]
+        vy_ij    = vy[i, j]
+        vz_j     = vz[j]
+        theta_ij = theta[i, j]
+        disp_ij  = actuator_displacement[i, j]
         vec_rows.append({
             "Actuator": i+1,
             "Slice":    j,
             "vx":       0.0,
             "vy":       float(round(vy_ij,   4)),
             "vz":       float(round(vz_j,    4)),
-            "disp":     float(round(disp_ij, 4)),
+            "θ (rad)":   float(round(theta_ij,4)),
+            "disp (in)": float(round(disp_ij, 4)),
             "vector":   f"{{0, {vy_ij:.4f}, {vz_j:.4f}}}"
         })
 
 vec_df = pd.DataFrame(vec_rows)
-st.subheader("Velocity & Displacement")
+st.subheader("Velocity, Angle & Displacement")
 st.dataframe(vec_df, use_container_width=True)
+
