@@ -46,7 +46,8 @@ if st.button("Process"):
         xs_mm = np.linspace(0, bounds_width_mm, num_actuators)
     else:
         xs_mm = np.array([0.0])
-
+    # 4.3b Convert actuator X positions to inches
+    xs_in = xs_mm / 25.4
     # 4.4 Map into mesh coords
     (xmin,ymin,zmin),(xmax,ymax,zmax) = mesh.bounds
     xs_mesh = xmin + (xs_mm/bounds_width_mm)*(xmax-xmin)
