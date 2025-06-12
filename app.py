@@ -41,7 +41,7 @@ if st.button("Process"):
     # 4.2 Load mesh
     mesh = trimesh.load(BytesIO(uploaded.read()),
                         file_type=uploaded.name.split('.')[-1])
-    if mesh.is_empty: #if mesh is empty
+    if mesh.is_empty:
         st.error("Mesh is empty.")
         st.stop()
 
@@ -52,11 +52,14 @@ if st.button("Process"):
         xs_mm = np.array([0.0])
     # 4.3b Convert actuator X positions to inches
     xs_in = xs_mm / 25.4
+
     # 4.4 Map into mesh coords
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
     xs_mesh = xmin + (xs_mm / bounds_width_mm) * (xmax - xmin)
-    # 4.5 Z slices
+
+    # ── **4.5 Z slices** ⬅️ moved **here**, before ray‐cast
     zs = np.linspace(zmin, zmax, nz)
+
     # 4.6 Nudge inwards
     if num_actuators > 1:
         span    = xmax - xmin
@@ -78,35 +81,22 @@ if st.button("Process"):
         if len(idxs):
             H_mm[i, idxs] = locs[:, 1]
 
-       # 4.8 Fill any fully-empty actuator rows
+    # 4.8 Fill any fully-empty actuator rows
     for i in range(len(xs_mesh)):
         if np.isnan(H_mm[i]).all():
             if i > 0 and not np.isnan(H_mm[i-1]).all():
                 H_mm[i] = H_mm[i-1]
             elif i < len(xs_mesh)-1 and not np.isnan(H_mm[i+1]).all():
                 H_mm[i] = H_mm[i+1]
-   # 4.9 Convert outputs to Imperial
-    H_in = H_mm / 25.4
-    xs_in = xs_mm / 25.4
-    
+
     # NEW: apply the vertical shift if requested
     if shift_zero:
         half_y_span = (ymax - ymin) / 2.0
         H_mm = H_mm - half_y_span
-    # inside `if st.button("Process"):` block
-    
-    # physical slice spacing (inches)
-    ds_in = (zmax - zmin) / (nz - 1) / 25.4
-    
-    # now when you compute vy, either
-    # A) use numpy.gradient with real spacing:
-    vy = np.gradient(H_in, ds_in, axis=1)      # ∂H/∂s_phys (inches per inch)
-    
-    # or B) if you prefer splines, fit against real s-coordinates:
-    s_phys = np.linspace(zmin, zmax, nz) / 25.4
-    for i in range(A):
-        spline = UnivariateSpline(s_phys, H_in[i, :], k=3, s=0)
-        vy[i, :] = spline.derivative(1)(s_phys)
+
+    # 4.9 Convert outputs to Imperial
+    H_in = H_mm / 25.4
+    xs_in = xs_mm / 25.4
 
     # ── 4.11 Heights table (inches) ─────────────────────────
     rows = []
@@ -122,8 +112,8 @@ if st.button("Process"):
         st.dataframe(df, use_container_width=True)
 
     # ── 4.12 Fit a spline through each actuator’s height curve and get dy/ds ──
-    s  = np.arange(nz)                          # parameter (slice index)
-    vy = np.zeros_like(H_in)                    # will store dy/ds
+    s  = np.arange(nz)
+    vy = np.zeros_like(H_in)
     for i in range(len(xs_in)):
         H_i      = H_in[i, :]
         spline   = UnivariateSpline(s, H_i, k=3, s=0)
@@ -131,13 +121,12 @@ if st.button("Process"):
 
     # ── 4.13 Build normals & normal‐based displacement ─────────────────────
     thickness_in = comp_thickness
-    # correct for y=s, z=H(s):
-    v_norm   = np.sqrt(1 + vy**2)
-    nx       = np.zeros_like(vy)
-    ny       = -vy     / v_norm
-    nz_norm  = 1.0 / v_norm
-    disp_normal = comp_thickness * v_norm    # thickness × √(1 + (dH/ds)²)
-    theta_n     = np.arccos(np.clip(nz_norm, -1.0, 1.0))  # angle to vertical
+    v_norm       = np.sqrt(1 + vy**2)
+    nx           = np.zeros_like(vy)
+    ny           = -vy     / v_norm
+    nz_norm      = 1.0     / v_norm
+    disp_normal  = thickness_in * v_norm
+    theta_n      = np.arccos(np.clip(nz_norm, -1.0, 1.0))
 
     vec_rows = []
     A = len(xs_in)
@@ -157,7 +146,7 @@ if st.button("Process"):
     with st.expander("Normal Vectors & Normal-Based Displacement", expanded=False):
         st.subheader("Normal Vectors & Normal-Based Displacement")
         st.dataframe(vec_df, use_container_width=True)
-    
+
     # ── 4.14 Build & show “top”/“bottom” height table ─────────────────────────
     disp_half = disp_normal / 2.0
     disp_rows = []
@@ -176,56 +165,8 @@ if st.button("Process"):
         st.subheader("Displaced Height Data (inches) — Top & Bottom Curves")
         st.dataframe(disp_df, use_container_width=True)
 
-        # ── 4.12 3D Plot: curves + normal vectors ─────────────────────────
-    st.subheader("Actuator Curves with Surface Normals")
-    fig = go.Figure()
-    samp = np.arange(nz)
-    A    = len(xs_in)
-
-    # 1) draw each actuator’s curve
-    for i in range(A):
-        fig.add_trace(go.Scatter3d(
-            x=np.full(nz, i+1),
-            y=samp,
-            z=H_in[i, :],
-            mode='lines',
-            name=f"Act {i+1}"
-        ))
-
-    # 2) build a grid of points & normals
-    # positions
-    Xg = np.repeat(np.arange(1, A+1)[:, None], nz, axis=1).flatten()
-    Yg = np.repeat(samp[None, :],              A, axis=0).flatten()
-    Zg = H_in.flatten()
-    # normal components
-    Ug = nx.flatten()      # x‐component of normal (should be zero)
-    Vg = ny.flatten()      # y‐component
-    Wg = nz_norm.flatten() # z‐component
-
-    # 3) add normal arrows as cones
-    fig.add_trace(go.Cone(
-        x=Xg, y=Yg, z=Zg,
-        u=Ug, v=Vg, w=Wg,
-        anchor="tail",
-        sizemode="absolute",
-        sizeref=5,      # tweak this to make arrows longer/shorter
-        showscale=False
-    ))
-
-    fig.update_layout(
-        scene=dict(
-            xaxis_title="Actuator #",
-            xaxis=dict(autorange="reversed"),
-            yaxis_title="Sample #",
-            zaxis_title="Height (in)"
-        ),
-        height=700,
-        margin=dict(l=20, r=20, t=40, b=20)
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
     # ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
-    st.subheader("Displaced Actuator Curves in 3D")
+    st.subheader("Actuator Curves with Surface Normals")
     fig = go.Figure()
     samp = np.arange(nz)
     for i in range(len(xs_in)):
