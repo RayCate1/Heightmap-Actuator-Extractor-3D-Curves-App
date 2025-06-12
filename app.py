@@ -146,7 +146,7 @@ for i in range(A):
         })
 
 vec_df = pd.DataFrame(vec_rows)
-with st.expander("Parent Height Data (inches)", expanded=False):
+with st.expander("Normal Vectors & Normal-Based Displacement", expanded=False):
     st.dataframe(vec_df, use_container_width=True)
 # # ── 4.14 3D Plot: curves + normal vectors ────────────────────
 # st.subheader("Actuator Curves with Surface Normals")
@@ -217,8 +217,8 @@ for i in range(A):
     disp_rows.extend([row_top, row_bot])
 
 disp_df = pd.DataFrame(disp_rows)
-st.dataframe(disp_df, use_container_width=True)
-
+with st.expander("Displaced Height Data (inches) — Top & Bottom Curves", expanded=False):
+    st.dataframe(disp_df, use_container_width=True)
     # 4.12 3D Plot: X=actuator #, Y=sample #, Z=height (in)
 st.subheader("Actuator Curves in 3D")
 fig = go.Figure()
