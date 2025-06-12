@@ -125,7 +125,7 @@ if st.button("Process"):
     v_norm = np.sqrt(1 + vy**2)        # √(1 + (dH/ds)²)
     nx     = np.zeros_like(vy)         # x–component still zero
     ny     = -vy    / v_norm           # -- note the minus sign here
-    nz     =  1.0   / v_norm
+    nz_norm  =  1.0    / v_norm 
     disp_normal = comp_thickness * v_norm    # thickness × √(1 + (dH/ds)²)
     theta_n     = np.arccos(np.clip(nz_norm, -1.0, 1.0))  # angle to vertical
 
