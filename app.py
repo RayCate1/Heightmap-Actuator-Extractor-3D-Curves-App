@@ -159,65 +159,55 @@ st.download_button(
         mime="application/json"
 )
 
-# ── compute height‐derivative (vy) and slice‐derivative (vz) ──
-vy     = np.gradient(H_in, axis=1)       # shape (num_actuators, nz)
+# ── 4.11 compute height‐derivative (dy/ds) ────────────────
+vy     = np.gradient(H_in, axis=1)       # ∂y/∂s, shape (A, nz)
 slices = np.arange(nz)
-vz     = np.gradient(slices)             # shape (nz,) — all ones
+# note: ds/ds = 1 → we never need vz here
 
-# vx is zeros (not used)
-vx = np.zeros_like(vy)
+# ── 4.12 build normal & normal‐based displacement ──────────
+thickness_in = comp_thickness             # inches
 
-# ── compute actuator displacement with clamp ─────────────────
-thickness_in = comp_thickness             # in inches
-eps          = 1e-3                       # slope threshold
+# arc‐length factor ‖r′(s)‖ = sqrt((dy/ds)^2 + 1)
+v_norm = np.sqrt(vy**2 + 1.0)             # shape (A, nz)
 
-abs_vy = np.abs(vy)
-# raw geometric ratio = sqrt(vy^2 + vz^2) / |vy|
-ratio  = np.sqrt(vy**2 + vz[None, :]**2) / abs_vy
-ratio  = np.where(abs_vy < eps, 1.0, ratio)
-actuator_displacement = thickness_in * ratio
-# shape (num_actuators, nz)
+# unit normal N = (0, 1, -dy/ds) / ‖r′(s)‖
+nx = np.zeros_like(vy)
+ny = 1.0    / v_norm
+nz_norm = -vy / v_norm
 
-# ── compute angle θ between (0,1,0) and (0,vy,vz) ─────────────
-# cosθ = vy / sqrt(vy^2 + vz^2)
-mag = np.sqrt(vy**2 + vz[None, :]**2)
-# avoid division by zero
-mag_safe = np.where(mag == 0, 1e-6, mag)
-cos_theta = vy / mag_safe
-# clamp into [-1,1]
-cos_theta = np.clip(cos_theta, -1.0, 1.0)
-theta = np.arccos(cos_theta)  # in radians, shape (num_actuators, nz)
+# displacement along the normal = thickness * ‖r′(s)‖
+disp_normal = thickness_in * v_norm       # shape (A, nz)
 
-# ── build flat table of velocity vectors, θ & displacement ────
+# angle between N and vertical = arccos( N·(0,1,0) ) = arccos(ny)
+theta_n = np.arccos(np.clip(ny, -1.0, 1.0))
+
+# ── 4.13 build flat table of normals + θ + disp ────────────
 vec_rows = []
-for i in range(len(xs_in)):        # each actuator
-    for j in range(nz):            # each slice
-        vy_ij    = vy[i, j]
-        vz_j     = vz[j]
-        theta_ij = theta[i, j]
-        disp_ij  = actuator_displacement[i, j]
+A = len(xs_in)
+for i in range(A):
+    for j in range(nz):
         vec_rows.append({
-            "Actuator": i+1,
-            "Slice":    j,
-            "vx":       0.0,
-            "vy":       float(round(vy_ij,   4)),
-            "vz":       float(round(vz_j,    4)),
-            "θ (rad)":   float(round(theta_ij,4)),
-            "disp (in)": float(round(disp_ij, 4)),
-            "vector":   f"{{0, {vy_ij:.4f}, {vz_j:.4f}}}"
+            "Actuator":  i+1,
+            "Slice":     j,
+            "nx":        float(round(nx[i,j],     4)),
+            "ny":        float(round(ny[i,j],     4)),
+            "nz":        float(round(nz_norm[i,j],4)),
+            "θₙ (rad)":  float(round(theta_n[i,j],4)),
+            "disp (in)": float(round(disp_normal[i,j],4)),
+            "normal":    f"{{{nx[i,j]:.4f}, {ny[i,j]:.4f}, {nz_norm[i,j]:.4f}}}"
         })
 
 vec_df = pd.DataFrame(vec_rows)
-st.subheader("Velocity, Angle & Displacement")
+st.subheader("Normal Vectors & Normal-Based Displacement")
 st.dataframe(vec_df, use_container_width=True)
 
-# ── 4.12 3D Plot: curves + velocity vectors ─────────────────
-st.subheader("Actuator Curves with Velocity Vectors")
+# ── 4.14 3D Plot: curves + normal vectors ────────────────────
+st.subheader("Actuator Curves with Surface Normals")
 
 fig = go.Figure()
 
-# 1) draw each actuator’s curve
-for i in range(len(xs_in)):
+# draw each actuator’s curve
+for i in range(A):
     fig.add_trace(go.Scatter3d(
         x=np.full(nz, i+1),
         y=np.arange(nz),
@@ -226,20 +216,14 @@ for i in range(len(xs_in)):
         name=f"Act {i+1}"
     ))
 
-# 2) prepare the vector field (u,v,w) at each point
-A = len(xs_in)
-# grid of positions
-Xg = np.repeat(np.arange(1, A+1)[:, None], nz, axis=1)
-Yg = np.repeat(np.arange(nz)[None, :], A, axis=0)
+# set up grid & normal components
+Xg = np.repeat(np.arange(1, A+1)[:,None], nz, axis=1)
+Yg = np.repeat(np.arange(nz)[None,:],        A, axis=0)
 Zg = H_in
 
-# vector components in plot axes:
-#   u = 0  (no x‐movement)
-#   v = 1  (1 slice per sample along y‐axis)
-#   w = vy (dH/dslice along z‐axis)
-Ug = np.zeros_like(Zg)
-Vg = np.ones_like(Zg)
-Wg = vy  # vy from your np.gradient(H_in)
+Ug = nx
+Vg = ny
+Wg = nz_norm
 
 fig.add_trace(go.Cone(
     x=Xg.flatten(),
@@ -250,7 +234,7 @@ fig.add_trace(go.Cone(
     w=Wg.flatten(),
     anchor="tail",
     sizemode="absolute",
-    sizeref=2,        # tweak this to scale arrow length
+    sizeref=0.5,      # adjust to scale your normals
     showscale=False
 ))
 
@@ -263,5 +247,5 @@ fig.update_layout(
     height=700,
     margin=dict(l=20, r=20, t=40, b=20),
 )
-
 st.plotly_chart(fig, use_container_width=True)
+
