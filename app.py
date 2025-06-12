@@ -8,7 +8,7 @@ from io import BytesIO
 from scipy.interpolate import UnivariateSpline
 
 st.set_page_config(layout="wide")
-st.title("Heightmap Actuator Extractor & 3D Curves")
+st.title("Heightmap Actuator Extractor & 3D Curves ahh")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in mm)", type=["stl", "obj"])
