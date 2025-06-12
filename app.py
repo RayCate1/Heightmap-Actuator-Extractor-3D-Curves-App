@@ -166,7 +166,6 @@ vz     = np.gradient(slices)             # shape (nz,)
 # vx is just zeros of the same shape as vy
 vx = np.zeros_like(vy)
 
-# ── compute actuator displacement safely ─────────────────────
 thickness_in = comp_thickness             # in inches
 eps          = 1e-6                       # small floor to avoid divide-by-zero
 
@@ -196,5 +195,3 @@ for i in range(len(xs_in)):        # each actuator
 vec_df = pd.DataFrame(vec_rows)
 st.subheader("Velocity & Displacement")
 st.dataframe(vec_df, use_container_width=True)
-
-
