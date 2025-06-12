@@ -109,22 +109,23 @@ if st.button("Process"):
         st.subheader("Parent Height Data (inches)")
         st.dataframe(df, use_container_width=True)
 
-    # ── 4.11 fit a spline through each actuator’s height curve and get dy/ds ────────────────
-    s = np.arange(nz)
-    vy = np.zeros_like(H_in)
-    for i in range(len(xs_in)):
-        H_i = H_in[i, :]
-        spline = UnivariateSpline(s, H_i, k=3, s=0)
-        vy[i, :] = spline.derivative(n=1)(s)
+# ── fit a spline and compute dy/ds ───────────────────────────
+s      = np.arange(nz)
+vy     = np.zeros_like(H_in)
+for i in range(A):
+    H_i      = H_in[i, :]
+    spline   = UnivariateSpline(s, H_i, k=3, s=0)
+    vy[i, :] = spline.derivative(n=1)(s)
 
-    # ── 4.12 build normals & normal‐based displacement ──────────
-    thickness_in = comp_thickness
-    v_norm       = np.sqrt(vy**2 + 1.0)
-    nx           = np.zeros_like(vy)
-    ny           = 1.0 / v_norm
-    nz_norm      = -vy / v_norm
-    disp_normal  = thickness_in * v_norm
-    theta_n      = np.arccos(np.clip(ny, -1.0, 1.0))
+# ── build normals & displacement ─────────────────────────────
+v_norm     = np.sqrt(vy**2 + 1.0)      # √(1 + (dy/ds)²)
+nx         = np.zeros_like(vy)
+ny         = 1.0    / v_norm           # y‐component of the unit normal
+nz_norm    = -vy    / v_norm           # z‐component of the unit normal
+disp_normal= comp_thickness * v_norm    # thickness × √(1 + (dy/ds)²)
+
+# ── optional: log one row to debug ──────────────────────────
+st.write("DEBUG normal[0,:5]:", nx[0,:5], ny[0,:5], nz_norm[0,:5])
 
     vec_rows = []
     A = len(xs_in)
