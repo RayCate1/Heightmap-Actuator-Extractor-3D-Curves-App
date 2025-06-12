@@ -147,76 +147,76 @@ vec_df = pd.DataFrame(vec_rows)
 st.subheader("Normal Vectors & Normal-Based Displacement")
 st.dataframe(vec_df, use_container_width=True)
 
-# ── 4.14 3D Plot: curves + normal vectors ────────────────────
-st.subheader("Actuator Curves with Surface Normals")
+# # ── 4.14 3D Plot: curves + normal vectors ────────────────────
+# st.subheader("Actuator Curves with Surface Normals")
 
-fig = go.Figure()
-
-# draw each actuator’s curve
-for i in range(A):
-    fig.add_trace(go.Scatter3d(
-        x=np.full(nz, i+1),
-        y=np.arange(nz),
-        z=H_in[i, :],
-        mode='lines',
-        name=f"Act {i+1}"
-    ))
-
-# set up grid & normal components
-Xg = np.repeat(np.arange(1, A+1)[:,None], nz, axis=1)
-Yg = np.repeat(np.arange(nz)[None,:],        A, axis=0)
-Zg = H_in
-
-Ug = nx
-Vg = ny
-Wg = nz_norm
-
-fig.add_trace(go.Cone(
-    x=Xg.flatten(),
-    y=Yg.flatten(),
-    z=Zg.flatten(),
-    u=Ug.flatten(),
-    v=Vg.flatten(),
-    w=Wg.flatten(),
-    anchor="tail",
-    sizemode="absolute",
-    sizeref=10,      # adjust to scale your normals
-    showscale=False
-))
-
-fig.update_layout(
-    scene=dict(
-        xaxis_title="Actuator #",
-        yaxis_title="Sample #",
-        zaxis_title="Height (in)"
-    ),
-    height=700,
-    margin=dict(l=20, r=20, t=40, b=20),
-)
-st.plotly_chart(fig, use_container_width=True)
-
-#     # 4.12 3D Plot: X=actuator #, Y=sample #, Z=height (in)
-# st.subheader("Actuator Curves in 3D")
 # fig = go.Figure()
-# samp = np.arange(nz)
-# for i in range(len(xs_in)):
+
+# # draw each actuator’s curve
+# for i in range(A):
 #     fig.add_trace(go.Scatter3d(
-#         x=np.full(nz, i+1),     # actuator number 1…N
-#         y=samp,                  # sample (slice) index
-#         z=H_in[i, :],            # height in inches
+#         x=np.full(nz, i+1),
+#         y=np.arange(nz),
+#         z=H_in[i, :],
 #         mode='lines',
 #         name=f"Act {i+1}"
 #     ))
+
+# # set up grid & normal components
+# Xg = np.repeat(np.arange(1, A+1)[:,None], nz, axis=1)
+# Yg = np.repeat(np.arange(nz)[None,:],        A, axis=0)
+# Zg = H_in
+
+# Ug = nx
+# Vg = ny
+# Wg = nz_norm
+
+# fig.add_trace(go.Cone(
+#     x=Xg.flatten(),
+#     y=Yg.flatten(),
+#     z=Zg.flatten(),
+#     u=Ug.flatten(),
+#     v=Vg.flatten(),
+#     w=Wg.flatten(),
+#     anchor="tail",
+#     sizemode="absolute",
+#     sizeref=10,      # adjust to scale your normals
+#     showscale=False
+# ))
+
 # fig.update_layout(
 #     scene=dict(
 #         xaxis_title="Actuator #",
-#         xaxis=dict(autorange="reversed"),
 #         yaxis_title="Sample #",
 #         zaxis_title="Height (in)"
 #     ),
-#     height=600, margin=dict(l=20, r=20, t=40, b=20)
+#     height=700,
+#     margin=dict(l=20, r=20, t=40, b=20),
 # )
 # st.plotly_chart(fig, use_container_width=True)
+
+    # 4.12 3D Plot: X=actuator #, Y=sample #, Z=height (in)
+st.subheader("Actuator Curves in 3D")
+fig = go.Figure()
+samp = np.arange(nz)
+for i in range(len(xs_in)):
+    fig.add_trace(go.Scatter3d(
+        x=np.full(nz, i+1),     # actuator number 1…N
+        y=samp,                  # sample (slice) index
+        z=H_in[i, :],            # height in inches
+        mode='lines',
+        name=f"Act {i+1}"
+    ))
+fig.update_layout(
+    scene=dict(
+        xaxis_title="Actuator #",
+        xaxis=dict(autorange="reversed"),
+        yaxis_title="Sample #",
+        zaxis_title="Height (in)"
+    ),
+    height=600, margin=dict(l=20, r=20, t=40, b=20)
+)
+st.plotly_chart(fig, use_container_width=True)
 
 
 # ── 2) MACHINE PARAMETERS (Imperial) ────────────────────────
