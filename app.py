@@ -37,7 +37,7 @@ if st.button("Process"):
     # 4.1 Convert bounds (ft→mm)
     bounds_width_mm  = width_val  * 304.8 
     bounds_height_mm = height_val * 304.8
-
+    
     # 4.2 Load mesh
     mesh = trimesh.load(BytesIO(uploaded.read()),
                         file_type=uploaded.name.split('.')[-1])
@@ -52,7 +52,9 @@ if st.button("Process"):
         xs_mm = np.array([0.0])
     # 4.3b Convert actuator X positions to inches
     xs_in = xs_mm / 25.4
-
+    # 4.9 Convert outputs to Imperial
+    H_in = H_mm / 25.4
+    xs_in = xs_mm / 25.4
     # 4.4 Map into mesh coords
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
     xs_mesh = xmin + (xs_mm / bounds_width_mm) * (xmax - xmin)
@@ -99,10 +101,6 @@ if st.button("Process"):
     if shift_zero:
         half_y_span = (ymax - ymin) / 2.0
         H_mm = H_mm - half_y_span
-
-    # 4.9 Convert outputs to Imperial
-    H_in = H_mm / 25.4
-    xs_in = xs_mm / 25.4
 
     # ── 4.11 Heights table (inches) ─────────────────────────
     rows = []
