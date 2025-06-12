@@ -88,7 +88,6 @@ if st.button("Process"):
     xs_in = xs_mm / 25.4
 
     # 4.11 Heights table (inches)
-st.subheader("Parent Height Data (inches)")
 rows = []
 for i, xi in enumerate(xs_in, start=1):
     row = {"Actuator": i, "X (in)": float(round(xi, 3))}
@@ -99,6 +98,7 @@ for i, xi in enumerate(xs_in, start=1):
 df = pd.DataFrame(rows)
 
 with st.expander("Parent Height Data (inches)", expanded=False):
+    st.subheader("Parent Height Data (inches)")
     st.dataframe(df, use_container_width=True)
 # ── 4.11 fit a spline through each actuator’s height curve and get dy/ds ────────────────
 s = np.arange(nz)                                 # parameter (slice index)
@@ -129,7 +129,6 @@ disp_normal = thickness_in * v_norm                # shape (A, nz)
 theta_n     = np.arccos(np.clip(ny, -1.0, 1.0))     # radians
 
 # ── 4.13 build flat table of normals + θ + disp ────────────
-st.subheader("Normal Vectors & Normal-Based Displacement")
 vec_rows = []
 A = len(xs_in)
 for i in range(A):
@@ -147,6 +146,7 @@ for i in range(A):
 
 vec_df = pd.DataFrame(vec_rows)
 with st.expander("Normal Vectors & Normal-Based Displacement", expanded=False):
+    st.subheader("Normal Vectors & Normal-Based Displacement")
     st.dataframe(vec_df, use_container_width=True)
 # # ── 4.14 3D Plot: curves + normal vectors ────────────────────
 # st.subheader("Actuator Curves with Surface Normals")
@@ -221,7 +221,6 @@ with st.expander("Displaced Height Data (inches) — Top & Bottom Curves", expan
     st.dataframe(disp_df, use_container_width=True)
     
     # 4.12 3D Plot: X=actuator #, Y=sample #, Z=height (in)
-st.subheader("Actuator Curves in 3D")
 fig = go.Figure()
 samp = np.arange(nz)
 for i in range(len(xs_in)):
@@ -242,6 +241,7 @@ fig.update_layout(
     height=600, margin=dict(l=20, r=20, t=40, b=20)
 )
 with st.expander("Actuator Curves in 3D", expanded=False):
+    st.subheader("Actuator Curves in 3D")
     st.plotly_chart(fig, use_container_width=True)
 
 # ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
