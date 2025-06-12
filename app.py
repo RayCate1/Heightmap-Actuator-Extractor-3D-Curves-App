@@ -128,9 +128,6 @@ if st.button("Process"):
     disp_normal  = thickness_in * v_norm        # thickness × √(1+(dy/ds)²)
     theta_n      = np.arccos(np.clip(ny, -1.0, 1.0))
 
-    # optional debug
-    st.write("DEBUG normal[0,:5]:", nx[0,:5], ny[0,:5], nz_norm[0,:5])
-
     vec_rows = []
     A = len(xs_in)
     for i in range(A):
