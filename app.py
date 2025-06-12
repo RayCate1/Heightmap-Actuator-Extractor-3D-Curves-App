@@ -53,6 +53,12 @@ if st.button("Process"):
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
     xs_mesh = xmin + (xs_mm / bounds_width_mm) * (xmax - xmin)
 
+    # NEW: checkbox to shift zero
+    shift_zero = st.checkbox(
+        "Re-zero at mid-height (shift all heights down by half the bounding-box Y)", 
+        value=False
+    )
+    
     # 4.5 Z slices
     zs = np.linspace(zmin, zmax, nz)
 
@@ -84,7 +90,10 @@ if st.button("Process"):
                 H_mm[i] = H_mm[i - 1]
             elif i < len(xs_mesh) - 1 and not np.isnan(H_mm[i + 1]).all():
                 H_mm[i] = H_mm[i + 1]
-
+    # NEW: apply the vertical shift if requested
+    if shift_zero:
+        half_y_span = (ymax - ymin) / 2.0
+        H_mm = H_mm - half_y_span
     # 4.9 Convert outputs to Imperial
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
