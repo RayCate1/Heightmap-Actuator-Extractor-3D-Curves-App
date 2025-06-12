@@ -195,9 +195,9 @@ with st.expander("Normal Vectors & Normal-Based Displacement", expanded=False):
 #     margin=dict(l=20, r=20, t=40, b=20),
 # )
 # st.plotly_chart(fig, use_container_width=True)
-# ── 4.14 Build & show “top”/“bottom” displaced height table ──
+# ── 4.14 Build & show “top”/“bottom”  height table ──
 
-st.subheader("Displaced Height Data (inches) — Top & Bottom Curves")
+# st.subheader("Displaced Height Data (inches) — Top & Bottom Curves")
 
 # half-displacement
 disp_half = disp_normal / 2.0   # shape (A, nz)
