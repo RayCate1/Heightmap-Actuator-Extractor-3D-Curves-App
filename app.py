@@ -112,6 +112,7 @@ if st.button("Process"):
     fig.update_layout(
         scene=dict(
             xaxis_title="Actuator #",
+            xaxis=dict(autorange="reversed"),
             yaxis_title="Sample #",
             zaxis_title="Height (in)"
         ),
