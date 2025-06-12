@@ -8,7 +8,7 @@ from io import BytesIO
 from scipy.interpolate import UnivariateSpline
 
 st.set_page_config(layout="wide")
-st.title("Heightmap Actuator Extractor & 3D Curves y y  y ")
+st.title("Heightmap Actuator Extractor & 3D Curves")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in mm)", type=["stl", "obj"])
@@ -196,6 +196,54 @@ if st.button("Process"):
         height=600,
         margin=dict(l=20, r=20, t=40, b=20)
     )
+    st.plotly_chart(fig, use_container_width=True)
+    # ── Visualize Curves + Normals ───────────────────────────────
+    st.subheader("3D Curves with Surface Normals")
+    
+    fig = go.Figure()
+    samp = np.arange(nz)
+    A    = len(xs_in)
+    
+    # 1) Plot each actuator’s curve
+    for i in range(A):
+        fig.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1),
+            y=samp,
+            z=H_in[i, :],
+            mode='lines',
+            line=dict(width=4),
+            name=f"Actuator {i+1}"
+        ))
+    
+    # 2) Prepare flattened grids for normals
+    Xg = np.repeat(np.arange(1, A+1)[:, None], nz, axis=1).ravel()
+    Yg = np.repeat(samp[None, :],        A,        axis=0).ravel()
+    Zg = H_in.ravel()
+    
+    Ug = nx.ravel()       # x-component (should be zero)
+    Vg = ny.ravel()       # y-component
+    Wg = nz_norm.ravel()  # z-component
+    
+    # 3) Overlay normals as cones
+    fig.add_trace(go.Cone(
+        x=Xg, y=Yg, z=Zg,
+        u=Ug, v=Vg, w=Wg,
+        anchor="tail",
+        sizemode="absolute",
+        sizeref=0.5,      # ← adjust to scale arrow lengths
+        showscale=False
+    ))
+    
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(title="Actuator #", autorange="reversed"),
+            yaxis=dict(title="Slice #"),
+            zaxis=dict(title="Height (in)")
+        ),
+        height=700,
+        margin=dict(l=20, r=20, t=30, b=20)
+    )
+    
     st.plotly_chart(fig, use_container_width=True)
 
     # ── 2) MACHINE PARAMETERS (Imperial) ────────────────────────
