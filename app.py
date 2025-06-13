@@ -151,6 +151,24 @@ if st.button("Process"):
     for j in range(5):
         v = velocity_vectors[0, j]
         print(f"Actuator 1, slice {j}: v = {{vx={v[0]:.3f}, vy={v[1]:.3f}, vz={v[2]:.3f}}}")
+    # ── 4.16 Build & show velocity vectors ─────────────────────────
+    # velocity_vectors shape is (A, nz, 3)
+    rows = []
+    for i in range(A):         # actuator index
+        for j in range(nz):    # slice index
+            vx_ij, vy_ij, vz_ij = velocity_vectors[i, j]
+            rows.append({
+                "Actuator": i+1,
+                "Slice":    j,
+                "vx":       float(round(vx_ij, 3)),
+                "vy":       float(round(vy_ij, 3)),
+                "vz":       float(round(vz_ij, 3)),
+            })
+    vel_df = pd.DataFrame(rows)
+
+    st.subheader("Velocity Vectors (units per slice)")
+    with st.expander("Show all velocities", expanded=False):
+        st.dataframe(vel_df, use_container_width=True)
 
     # # ── 4.14 Build table of θ and displacement ────────────────
     # angle_rows = []
