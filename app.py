@@ -151,46 +151,37 @@ if st.button("Process"):
     for j in range(5):
         v = velocity_vectors[0, j]
         print(f"Actuator 1, slice {j}: v = {{vx={v[0]:.3f}, vy={v[1]:.3f}, vz={v[2]:.3f}}}")
-    # ── compute scalar speed at each point ───────────────────────
-    # vy[i,j] = dH/ds at actuator i, slice j
-    # vz = 1 slice per slice-step
-    vz = 1.0
-    speed = np.sqrt(vy**2 + vz**2)    # shape (A, nz)
-    
-    # ── show speed in a table ───────────────────────────────────
-    speed_rows = []
-    for i in range(A):
-        row = {"Actuator": i+1}
-        for j in range(nz):
-            row[f"Z[{j}]"] = float(round(speed[i,j], 4))
-        speed_rows.append(row)
-    speed_df = pd.DataFrame(speed_rows)
-    
-    with st.expander("Instantaneous Speed (units per slice)", expanded=False):
-        st.subheader("Curve Speed = √( (dH/ds)² + 1 )")
-        st.dataframe(speed_df, use_container_width=True)
-    
-    # ── overlay speed on a 3D plot as color ─────────────────────
-    fig = go.Figure()
-    for i in range(A):
-        fig.add_trace(go.Scatter3d(
-            x = np.full(nz, i+1),
-            y = np.arange(nz),
-            z = H_in[i, :],
-            mode='lines',
-            line=dict(width=6, color=speed[i,:], colorscale="Viridis", showscale=(i==0)),
-            name=f"Act {i+1}"
-        ))
-    
-    fig.update_layout(
-        scene=dict(
-            xaxis_title="Actuator #",
-            yaxis_title="Slice #",
-            zaxis_title="Height (in)"
-        ),
-        height=700, margin=dict(l=20, r=20, t=30, b=20)
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    # ── 4.18 Compute & show velocity magnitude & direction ──────
+    # vx, vy, vz arrays of shape (A, nz)
+    vz = np.ones_like(vy)       # dz/ds = 1
+    vx = np.zeros_like(vy)      # no x‐movement
+
+    # magnitude (speed) at each point
+    speed = np.sqrt(vx**2 + vy**2 + vz**2)
+
+    # unit‐direction components
+    ux = vx / speed
+    uy = vy / speed
+    uz = vz / speed
+
+    # build a DataFrame
+    vel_rows = []
+    for i in range(A):            # actuator index
+        for j in range(nz):       # slice index
+            vel_rows.append({
+                "Actuator":   i+1,
+                "Slice":      j,
+                "Speed":      float(round(speed[i,j], 4)),
+                "ux":         float(round(ux[i,j],    4)),
+                "uy":         float(round(uy[i,j],    4)),
+                "uz":         float(round(uz[i,j],    4)),
+            })
+    vel_df = pd.DataFrame(vel_rows)
+
+    with st.expander("Velocity Magnitude & Direction", expanded=False):
+        st.subheader("Velocity Vector → magnitude & unit‐direction")
+        st.dataframe(vel_df, use_container_width=True)
+
 
 
     # # ── 4.14 Build table of θ and displacement ────────────────
