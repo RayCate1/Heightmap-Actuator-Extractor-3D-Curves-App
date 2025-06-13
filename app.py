@@ -105,7 +105,13 @@ if st.button("Process"):
                 H_mm[i] = H_mm[i-1]
             elif i < len(xs_mesh)-1 and not np.isnan(H_mm[i+1]).all():
                 H_mm[i] = H_mm[i+1]
-    
+
+        # 4.8b Interpolate any remaining NaNs along each actuator row
+    for i in range(len(xs_mesh)):
+        row = pd.Series(H_mm[i, :])
+        row = row.interpolate(method='linear', limit_direction='both')
+        H_mm[i, :] = row.values
+        
     # 4.9 Convert outputs to Imperial
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
