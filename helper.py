@@ -11,12 +11,3 @@
        """
        angle_rad = math.atan2(vy, vx)
        return angle_rad
-
-   # Example usage:
-   vx = 3  # x-component of velocity
-   vy = 4  # y-component of velocity
-   angle_rad = calculate_velocity_angle(vx, vy)
-   angle_deg = math.degrees(angle_rad)  # Convert to degrees if needed
-
-   print(f"Angle in radians: {angle_rad}")
-   print(f"Angle in degrees: {angle_deg}")
