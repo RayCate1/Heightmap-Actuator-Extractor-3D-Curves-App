@@ -125,53 +125,69 @@ if st.button("Process"):
         st.subheader("Parent Height Data (inches)")
         st.dataframe(df, use_container_width=True)
 
-    # ── 4.12 Fit a spline through each actuator’s height curve and get dy/ds ──
+    # ── 4.12 Fit spline → get dH/ds (vy) ────────────────────────
     s  = np.arange(nz)
     vy = np.zeros_like(H_in)
     for i in range(len(xs_in)):
-        H_i      = H_in[i, :]
-        spline   = UnivariateSpline(s, H_i, k=3, s=0)
+        H_i    = H_in[i, :]
+        spline = UnivariateSpline(s, H_i, k=3, s=0)
         vy[i, :] = spline.derivative(n=1)(s)
 
-    # ── 4.13 Build normals & normal‐based displacement ─────────────────────
-    thickness_in = comp_thickness
-    v_norm       = np.sqrt(1 + vy**2)
-    nx           = np.zeros_like(vy)
-    ny           = -vy     / v_norm
-    nz_norm      = 1.0     / v_norm
-    disp_normal  = thickness_in * v_norm
-    theta_n      = np.arccos(np.clip(nz_norm, -1.0, 1.0))
+    # ── 4.13 Compute angle‐based displacement ───────────────────
+    thickness_in = comp_thickness  # inches
 
+    # build the “tangent” vector components
+    vz         = np.ones_like(vy)               # dz/ds = 1 slice/sample
+    norms      = np.hypot(vy, vz)               # sqrt(vy^2 + 1)
+
+    # cos of angle between (vy,vz) and vertical (1,0) is vy/norm
+    cos_ang    = vy / norms
+    # clamp for safety
+    cos_ang    = np.clip(cos_ang, -1.0, 1.0)
+
+    # principal angle in [0,π]
+    theta      = np.arccos(cos_ang)             # radians
+
+    # add π to any where vy<0 → full [0,2π) range if you want
+    theta      = np.where(vy < 0, theta + np.pi, theta)
+
+    # now displacement = thickness / cos(theta)
+    # (clamp cos to avoid divide‐by‐zero)
+    cos_safe   = np.where(np.abs(cos_ang) < 1e-6, 1e-6, cos_ang)
+    disp_angle = thickness_in / cos_safe        # inches
+
+    # ── 4.14 Build table of θ and displacement ────────────────
     vec_rows = []
     A = len(xs_in)
     for i in range(A):
         for j in range(nz):
+            deg = np.degrees(theta[i, j])
+            d   = disp_angle[i, j]
             vec_rows.append({
-                "Actuator":  i+1,
-                "Slice":     j,
-                "nx":        float(round(nx[i, j],     4)),
-                "ny":        float(round(ny[i, j],     4)),
-                "nz":        float(round(nz_norm[i, j],4)),
-                "θₙ (rad)":  float(round(theta_n[i, j],4)),
-                "disp (in)": float(round(disp_normal[i, j],4)),
-                "normal":    f"{{{nx[i, j]:.4f}, {ny[i, j]:.4f}, {nz_norm[i, j]:.4f}}}"
+                "Actuator":      i+1,
+                "Slice":         j,
+                "vy":            float(round(vy[i,j],    4)),
+                "vz":            float(round(vz[j],      4)),
+                "θ (deg)":       float(round(deg,        2)),
+                "disp (in)":     float(round(d,          4)),
+                "formula used":  "d = t / cos(θ)"
             })
     vec_df = pd.DataFrame(vec_rows)
-    with st.expander("Normal Vectors & Normal-Based Displacement", expanded=False):
-        st.subheader("Normal Vectors & Normal-Based Displacement")
+
+    with st.expander("Angle-Based Displacement Table", expanded=False):
+        st.subheader("Angle-Based Displacement")
         st.dataframe(vec_df, use_container_width=True)
 
-    # ── 4.14 Build & show “top”/“bottom” height table ─────────────────────────
-    disp_half = disp_normal / 2.0
-    
-    # 1) form the displaced curves (top & bottom)
-    top_curve = H_in + disp_half     # shape (A, nz)
-    bot_curve = H_in - disp_half
+      # ── 4.14 Build & show “top”/“bottom” height table ─────────────────
+    disp_half  = disp_normal / 2.0
+    top_curve  = H_in + disp_half     # shape (A, nz)
+    bot_curve  = H_in - disp_half
 
-    # 2) optionally zero‐first *only* the displaced data
     if zero_disp:
-        top_curve = top_curve - top_curve[:, 0][:, None]
-        bot_curve = bot_curve - bot_curve[:, 0][:, None]
+        # subtract each curve’s first-slice value
+        top_curve -= top_curve[:, 0][:, None]
+        bot_curve -= bot_curve[:, 0][:, None]
+
     disp_rows = []
     for i in range(A):
         for kind, curve in (("top", top_curve), ("bottom", bot_curve)):
@@ -187,23 +203,23 @@ if st.button("Process"):
     st.subheader("Displaced Curves in 3D")
     fig = go.Figure()
     samp = np.arange(nz)
-    for i in range(len(xs_in)):
-        top_z = H_in[i, :] + disp_normal[i, :] / 2
-        bot_z = H_in[i, :] - disp_normal[i, :] / 2
+
+    for i in range(A):
         fig.add_trace(go.Scatter3d(
-            x=np.full(nz, i + 1),
+            x=np.full(nz, i+1),
             y=samp,
-            z=top_z,
+            z=top_curve[i, :],
             mode='lines',
-            name=f"Act {i + 1} Top"
+            name=f"Act {i+1} Top"
         ))
         fig.add_trace(go.Scatter3d(
-            x=np.full(nz, i + 1),
+            x=np.full(nz, i+1),
             y=samp,
-            z=bot_z,
+            z=bot_curve[i, :],
             mode='lines',
-            name=f"Act {i + 1} Bottom"
+            name=f"Act {i+1} Bottom"
         ))
+
     fig.update_layout(
         scene=dict(
             xaxis_title="Actuator #",
@@ -215,6 +231,7 @@ if st.button("Process"):
         margin=dict(l=20, r=20, t=40, b=20)
     )
     st.plotly_chart(fig, use_container_width=True)
+
     # # ── Visualize Curves + Normals ───────────────────────────────
     # st.subheader("3D Curves with Surface Normals")
     
