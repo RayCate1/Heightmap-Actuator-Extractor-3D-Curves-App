@@ -3,4 +3,3 @@ streamlit
 plotly
 rtree
 scipy
-math
