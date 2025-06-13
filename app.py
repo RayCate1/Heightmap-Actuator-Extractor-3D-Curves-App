@@ -102,6 +102,18 @@ if st.button("Process"):
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
 
+    # 4.8b Fill any remaining NaNs by linear interpolation along the Z-axis
+    for i in range(len(xs_mesh)):
+        row = H_mm[i, :]                     # this is in mm
+        idx = np.arange(nz)
+        mask = np.isnan(row)
+        if mask.all():
+            continue                         # already handled by full-row fallback
+        # interpolate only where row isn’t NaN
+        valid = ~mask
+        row[mask] = np.interp(idx[mask], idx[valid], row[valid])
+        H_mm[i, :] = row
+
     # ── 4.11 Heights table (inches) ─────────────────────────
     rows = []
     for i, xi in enumerate(xs_in, start=1):
