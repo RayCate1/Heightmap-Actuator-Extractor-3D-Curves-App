@@ -157,26 +157,23 @@ if st.button("Process"):
     disp_angle = thickness_in / cos_safe        # inches
 
     # ── 4.14 Build table of θ and displacement ────────────────
-    vec_rows = []
-    A = len(xs_in)
+    angle_rows = []
     for i in range(A):
         for j in range(nz):
-            deg = np.degrees(theta[i, j])
-            d   = disp_angle[i, j]
-            vec_rows.append({
-                "Actuator":      i+1,
-                "Slice":         j,
-                "vy":            float(round(vy[i,j],    4)),
-                "vz":            float(round(vz[j],      4)),
-                "θ (deg)":       float(round(deg,        2)),
-                "disp (in)":     float(round(d,          4)),
-                "formula used":  "d = t / cos(θ)"
+            angle_rows.append({
+                "Actuator":  i+1,
+                "Slice":     j,
+                "vy":        float(round(vy[i, j],    4)),
+                "vz":        float(round(vz[i, j],    4)),   # <-- change here
+                "θ (deg)":   float(round(np.degrees(theta[i, j]), 2)),
+                "disp (in)": float(round(disp_angle[i, j],       4)),
+                "formula":   "d = t / cos(θ)"
             })
-    vec_df = pd.DataFrame(vec_rows)
+    angle_df = pd.DataFrame(angle_rows)
 
     with st.expander("Angle-Based Displacement Table", expanded=False):
         st.subheader("Angle-Based Displacement")
-        st.dataframe(vec_df, use_container_width=True)
+        st.dataframe(angle_df, use_container_width=True)
 
       # ── 4.14 Build & show “top”/“bottom” height table ─────────────────
     disp_half  = disp_normal / 2.0
