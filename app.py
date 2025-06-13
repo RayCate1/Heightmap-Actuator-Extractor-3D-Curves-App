@@ -28,8 +28,8 @@ with b2:
         "Re-zero at mid-height (shift all heights down by half the bounding-box Y)", 
         value=False
     )
-    zero_first = st.checkbox(
-        "Relative Movment (Actuators will start at zero, and be given displacment heights)",
+    zero_disp = st.checkbox(
+        "Relative Movment (Actuators will start at zero, and be given heights relative to their start position)",
         value=False
     )
 # ── 4) LAUNCH PROCESS ────────────────────────────────────────
@@ -101,12 +101,7 @@ if st.button("Process"):
     # 4.9 Convert outputs to Imperial
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
-    # ── optional zeroing: subtract the first-slice height from each actuator’s curve
-    if zero_first:
-        # H_in.shape == (num_actuators, nz)
-        H_in = H_in - H_in[:, 0][:, np.newaxis]
 
-    
     # ── 4.11 Heights table (inches) ─────────────────────────
     rows = []
     for i, xi in enumerate(xs_in, start=1):
@@ -158,20 +153,24 @@ if st.button("Process"):
 
     # ── 4.14 Build & show “top”/“bottom” height table ─────────────────────────
     disp_half = disp_normal / 2.0
+    
+    # 1) form the displaced curves (top & bottom)
+    top_curve = H_in + disp_half     # shape (A, nz)
+    bot_curve = H_in - disp_half
+
+    # 2) optionally zero‐first *only* the displaced data
+    if zero_disp:
+        top_curve = top_curve - top_curve[:, 0][:, None]
+        bot_curve = bot_curve - bot_curve[:, 0][:, None]
     disp_rows = []
     for i in range(A):
-        actuator_id = i + 1
-        row_top = {"Actuator": actuator_id, "Type": "top"}
-        row_bot = {"Actuator": actuator_id, "Type": "bottom"}
-        for j in range(nz):
-            h  = H_in[i, j]
-            dh = disp_half[i, j]
-            row_top[f"Z[{j}]"] = float(round(h + dh, 3))
-            row_bot[f"Z[{j}]"] = float(round(h - dh, 3))
-        disp_rows.extend([row_top, row_bot])
+        for kind, curve in (("top", top_curve), ("bottom", bot_curve)):
+            row = {"Actuator": i+1, "Type": kind}
+            for j in range(nz):
+                row[f"Z[{j}]"] = float(round(curve[i, j], 3))
+            disp_rows.append(row)
     disp_df = pd.DataFrame(disp_rows)
     with st.expander("Displaced Height Data (inches) — Top & Bottom Curves", expanded=False):
-        st.subheader("Displaced Height Data (inches) — Top & Bottom Curves")
         st.dataframe(disp_df, use_container_width=True)
 
     # ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
