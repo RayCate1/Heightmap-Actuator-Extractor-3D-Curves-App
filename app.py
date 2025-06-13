@@ -153,6 +153,18 @@ if st.button("Process"):
         print(f"Actuator 1, slice {j}: v = {{vx={v[0]:.3f}, vy={v[1]:.3f}, vz={v[2]:.3f}}}")
     # ── 4.19 Build & show velocity & angle from X ─────────────────
     # Assume vx, vy, vz, speed, ux, uy, uz are already defined arrays
+    # ── 4.18 Compute & show velocity magnitude & direction ──────
+    # vx, vy, vz arrays of shape (A, nz)
+    vz = np.ones_like(vy)       # dz/ds = 1
+    vx = np.zeros_like(vy)      # no x‐movement
+
+    # magnitude (speed) at each point
+    speed = np.sqrt(vx**2 + vy**2 + vz**2)
+
+    # unit‐direction components
+    ux = vx / speed
+    uy = vy / speed
+    uz = vz / speed
 
     # compute angle from X-axis (in degrees), clamped
     ux_safe    = np.clip(ux, -1.0, 1.0)
