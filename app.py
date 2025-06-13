@@ -151,37 +151,30 @@ if st.button("Process"):
     for j in range(5):
         v = velocity_vectors[0, j]
         print(f"Actuator 1, slice {j}: v = {{vx={v[0]:.3f}, vy={v[1]:.3f}, vz={v[2]:.3f}}}")
-    # ── 4.18 Compute & show velocity magnitude & direction ──────
-    # vx, vy, vz arrays of shape (A, nz)
-    vz = np.ones_like(vy)       # dz/ds = 1
-    vx = np.zeros_like(vy)      # no x‐movement
+    # ── 4.19 Build & show velocity & angle from X ─────────────────
+    # Assume vx, vy, vz, speed, ux, uy, uz are already defined arrays
 
-    # magnitude (speed) at each point
-    speed = np.sqrt(vx**2 + vy**2 + vz**2)
+    # compute angle from X-axis (in degrees), clamped
+    ux_safe    = np.clip(ux, -1.0, 1.0)
+    angle_x    = np.degrees(np.arccos(ux_safe))   # shape (A, nz)
 
-    # unit‐direction components
-    ux = vx / speed
-    uy = vy / speed
-    uz = vz / speed
-
-    # build a DataFrame
     vel_rows = []
-    for i in range(A):            # actuator index
-        for j in range(nz):       # slice index
+    for i in range(A):
+        for j in range(nz):
             vel_rows.append({
-                "Actuator":   i+1,
-                "Slice":      j,
-                "Speed":      float(round(speed[i,j], 4)),
-                "ux":         float(round(ux[i,j],    4)),
-                "uy":         float(round(uy[i,j],    4)),
-                "uz":         float(round(uz[i,j],    4)),
+                "Actuator":      i+1,
+                "Slice":         j,
+                "Speed":         float(round(speed[i,j],    4)),
+                "ux":            float(round(ux[i,j],       4)),
+                "uy":            float(round(uy[i,j],       4)),
+                "uz":            float(round(uz[i,j],       4)),
+                "Angle from X (°)": float(round(angle_x[i,j], 2)),
             })
     vel_df = pd.DataFrame(vel_rows)
 
-    with st.expander("Velocity Magnitude & Direction", expanded=False):
-        st.subheader("Velocity Vector → magnitude & unit‐direction")
+    with st.expander("Velocity & Direction Table", expanded=False):
+        st.subheader("Velocity Magnitude, Unit-Dir & Angle from X-Axis")
         st.dataframe(vel_df, use_container_width=True)
-
 
 
     # # ── 4.14 Build table of θ and displacement ────────────────
