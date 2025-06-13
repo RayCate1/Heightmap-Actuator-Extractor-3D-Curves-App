@@ -174,13 +174,14 @@ if st.button("Process"):
     with st.expander("Angle-Based Displacement", expanded=False):
         st.subheader("Angle-Based Displacement")
 
-      # ── 4.14 Build & show “top”/“bottom” height table ─────────────────
-    disp_half  = disp_normal / 2.0
-    top_curve  = H_in + disp_half     # shape (A, nz)
+    # disp_angle[i,j] == thickness_in / cos(theta[i,j])
+    disp_half  = disp_angle  / 2.0
+
+    # build the top/bottom curves using half of t/cos(theta)
+    top_curve  = H_in + disp_half   # shape (A, nz)
     bot_curve  = H_in - disp_half
 
     if zero_disp:
-        # subtract each curve’s first-slice value
         top_curve -= top_curve[:, 0][:, None]
         bot_curve -= bot_curve[:, 0][:, None]
 
