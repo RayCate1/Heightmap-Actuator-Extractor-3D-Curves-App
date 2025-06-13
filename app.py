@@ -151,54 +151,44 @@ if st.button("Process"):
     for j in range(5):
         v = velocity_vectors[0, j]
         print(f"Actuator 1, slice {j}: v = {{vx={v[0]:.3f}, vy={v[1]:.3f}, vz={v[2]:.3f}}}")
-      # ── 4.17 3D Plot: Actuator Curves + Velocity Vectors ───────────
-    st.subheader("Actuator Curves with Velocity Vectors")
-
+    # ── compute scalar speed at each point ───────────────────────
+    # vy[i,j] = dH/ds at actuator i, slice j
+    # vz = 1 slice per slice-step
+    vz = 1.0
+    speed = np.sqrt(vy**2 + vz**2)    # shape (A, nz)
+    
+    # ── show speed in a table ───────────────────────────────────
+    speed_rows = []
+    for i in range(A):
+        row = {"Actuator": i+1}
+        for j in range(nz):
+            row[f"Z[{j}]"] = float(round(speed[i,j], 4))
+        speed_rows.append(row)
+    speed_df = pd.DataFrame(speed_rows)
+    
+    with st.expander("Instantaneous Speed (units per slice)", expanded=False):
+        st.subheader("Curve Speed = √( (dH/ds)² + 1 )")
+        st.dataframe(speed_df, use_container_width=True)
+    
+    # ── overlay speed on a 3D plot as color ─────────────────────
     fig = go.Figure()
-    samp = np.arange(nz)
-    A    = len(xs_in)
-
-    # 1) Draw each actuator’s curve
     for i in range(A):
         fig.add_trace(go.Scatter3d(
-            x=np.full(nz, i+1),
-            y=samp,
-            z=H_in[i, :],
+            x = np.full(nz, i+1),
+            y = np.arange(nz),
+            z = H_in[i, :],
             mode='lines',
-            line=dict(width=4),
+            line=dict(width=6, color=speed[i,:], colorscale="Viridis", showscale=(i==0)),
             name=f"Act {i+1}"
         ))
-
-    # 2) Flatten the grid & velocity components
-    # Positions
-    Xg = np.repeat(np.arange(1, A+1)[:, None], nz, axis=1).ravel()
-    Yg = np.repeat(samp[None, :],             A, axis=0).ravel()
-    Zg = H_in.ravel()
-    # Velocity components (vx, vy, vz)
-    Ug = vx.ravel()   # should be all zeros
-    Vg = vy.ravel()   # dH/ds
-    Wg = vz.ravel()   # =1
-
-    # 3) Add cones for velocity vectors
-    fig.add_trace(go.Cone(
-        x=Xg, y=Yg, z=Zg,
-        u=Ug, v=Vg, w=Wg,
-        anchor="tail",
-        sizemode="absolute",
-        sizeref=2,      # adjust to taste
-        showscale=False
-    ))
-
-    # 4) Style & render
+    
     fig.update_layout(
         scene=dict(
             xaxis_title="Actuator #",
-            xaxis=dict(autorange="reversed"),
             yaxis_title="Slice #",
             zaxis_title="Height (in)"
         ),
-        height=700,
-        margin=dict(l=20, r=20, t=30, b=20)
+        height=700, margin=dict(l=20, r=20, t=30, b=20)
     )
     st.plotly_chart(fig, use_container_width=True)
 
