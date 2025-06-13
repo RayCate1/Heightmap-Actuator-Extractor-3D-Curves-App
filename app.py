@@ -151,58 +151,57 @@ if st.button("Process"):
     for j in range(5):
         v = velocity_vectors[0, j]
         print(f"Actuator 1, slice {j}: v = {{vx={v[0]:.3f}, vy={v[1]:.3f}, vz={v[2]:.3f}}}")
-    # ── 4.16 Build & show velocity vectors ─────────────────────────
-    # velocity_vectors shape is (A, nz, 3)
-    rows = []
-    for i in range(A):         # actuator index
-        for j in range(nz):    # slice index
-            vx_ij, vy_ij, vz_ij = velocity_vectors[i, j]
-            rows.append({
-                "Actuator": i+1,
-                "Slice":    j,
-                "vx":       float(round(vx_ij, 3)),
-                "vy":       float(round(vy_ij, 3)),
-                "vz":       float(round(vz_ij, 3)),
-            })
-    vel_df = pd.DataFrame(rows)
+      # ── 4.17 3D Plot: Actuator Curves + Velocity Vectors ───────────
+    st.subheader("Actuator Curves with Velocity Vectors")
 
-    st.subheader("Velocity Vectors (units per slice)")
-    with st.expander("Show all velocities", expanded=False):
-        st.dataframe(vel_df, use_container_width=True)
-            # 1) Prepare your grid
-    samp = np.arange(nz)      # slice indices
-    A    = len(xs_in)         # number of actuators
-    
-    # 2) Make the figure
-    fig, ax = plt.subplots(figsize=(8, 5))
-    
-    # 3) For each actuator, plot its curve and quiver
+    fig = go.Figure()
+    samp = np.arange(nz)
+    A    = len(xs_in)
+
+    # 1) Draw each actuator’s curve
     for i in range(A):
-        H   = H_in[i, :]      # height vs. slice
-        dH  = vy[i, :]        # ∂H/∂s
-        ds  = np.ones(nz)     # ∂s/∂s = 1
-    
-        # plot the curve
-        ax.plot(samp, H, linewidth=1, label=f"Act {i+1}")
-    
-        # overlay velocity vectors
-        ax.quiver(
-            samp, H,        # arrow tail: at each (s, H)
-            ds, dH,         # arrow direction: (1, dH/ds)
-            angles='xy',    # interpret (ds,dH) as x/y in data space
-            scale_units='xy',
-            scale=10,       # tweak so arrows are visible but not too long
-            width=0.003
-        )
-    
-    # 4) Label and legend
-    ax.set_xlabel("Slice #")
-    ax.set_ylabel("Height (in)")
-    ax.set_title("Height Curves with Velocity Vectors")
-    ax.legend(loc="upper right", fontsize="small")
-    
-    # 5) Render in Streamlit
-    st.pyplot(fig)
+        fig.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1),
+            y=samp,
+            z=H_in[i, :],
+            mode='lines',
+            line=dict(width=4),
+            name=f"Act {i+1}"
+        ))
+
+    # 2) Flatten the grid & velocity components
+    # Positions
+    Xg = np.repeat(np.arange(1, A+1)[:, None], nz, axis=1).ravel()
+    Yg = np.repeat(samp[None, :],             A, axis=0).ravel()
+    Zg = H_in.ravel()
+    # Velocity components (vx, vy, vz)
+    Ug = vx.ravel()   # should be all zeros
+    Vg = vy.ravel()   # dH/ds
+    Wg = vz.ravel()   # =1
+
+    # 3) Add cones for velocity vectors
+    fig.add_trace(go.Cone(
+        x=Xg, y=Yg, z=Zg,
+        u=Ug, v=Vg, w=Wg,
+        anchor="tail",
+        sizemode="absolute",
+        sizeref=2,      # adjust to taste
+        showscale=False
+    ))
+
+    # 4) Style & render
+    fig.update_layout(
+        scene=dict(
+            xaxis_title="Actuator #",
+            xaxis=dict(autorange="reversed"),
+            yaxis_title="Slice #",
+            zaxis_title="Height (in)"
+        ),
+        height=700,
+        margin=dict(l=20, r=20, t=30, b=20)
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
 
     # # ── 4.14 Build table of θ and displacement ────────────────
     # angle_rows = []
