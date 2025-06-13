@@ -169,6 +169,40 @@ if st.button("Process"):
     st.subheader("Velocity Vectors (units per slice)")
     with st.expander("Show all velocities", expanded=False):
         st.dataframe(vel_df, use_container_width=True)
+            # 1) Prepare your grid
+    samp = np.arange(nz)      # slice indices
+    A    = len(xs_in)         # number of actuators
+    
+    # 2) Make the figure
+    fig, ax = plt.subplots(figsize=(8, 5))
+    
+    # 3) For each actuator, plot its curve and quiver
+    for i in range(A):
+        H   = H_in[i, :]      # height vs. slice
+        dH  = vy[i, :]        # ∂H/∂s
+        ds  = np.ones(nz)     # ∂s/∂s = 1
+    
+        # plot the curve
+        ax.plot(samp, H, linewidth=1, label=f"Act {i+1}")
+    
+        # overlay velocity vectors
+        ax.quiver(
+            samp, H,        # arrow tail: at each (s, H)
+            ds, dH,         # arrow direction: (1, dH/ds)
+            angles='xy',    # interpret (ds,dH) as x/y in data space
+            scale_units='xy',
+            scale=10,       # tweak so arrows are visible but not too long
+            width=0.003
+        )
+    
+    # 4) Label and legend
+    ax.set_xlabel("Slice #")
+    ax.set_ylabel("Height (in)")
+    ax.set_title("Height Curves with Velocity Vectors")
+    ax.legend(loc="upper right", fontsize="small")
+    
+    # 5) Render in Streamlit
+    st.pyplot(fig)
 
     # # ── 4.14 Build table of θ and displacement ────────────────
     # angle_rows = []
