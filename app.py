@@ -135,26 +135,22 @@ if st.button("Process"):
 
     # ── 4.13 Compute angle‐based displacement ───────────────────
     thickness_in = comp_thickness  # inches
-
-    # build the “tangent” vector components
-    vz         = np.ones_like(vy)               # dz/ds = 1 slice/sample
-    norms      = np.hypot(vy, vz)               # sqrt(vy^2 + 1)
-
-    # cos of angle between (vy,vz) and vertical (1,0) is vy/norm
-    cos_ang    = vy / norms
-    # clamp for safety
-    cos_ang    = np.clip(cos_ang, -1.0, 1.0)
-
-    # principal angle in [0,π]
-    theta      = np.arccos(cos_ang)             # radians
-
-    # add π to any where vy<0 → full [0,2π) range if you want
-    theta      = np.where(vy < 0, theta + np.pi, theta)
-
-    # now displacement = thickness / cos(theta)
-    # (clamp cos to avoid divide‐by‐zero)
-    cos_safe   = np.where(np.abs(cos_ang) < 1e-6, 1e-6, cos_ang)
-    disp_angle = thickness_in / cos_safe        # inches
+    
+    vz = np.ones_like(vy)    # dz/ds = 1 slice/sample
+    
+    # 1) directly compute the angle from the vertical (y-axis)
+    #    θ = atan2(opposite, adjacent) = atan2(vz, vy)
+    theta = np.arctan2(vz, vy)   # shape (A, nz), in radians
+    
+    # 2) if you want degrees instead:
+    theta_deg = np.degrees(theta)
+    
+    # 3) displacement = thickness / cos(θ)
+    #    cos(θ) = vy / sqrt(vy^2 + vz^2) by construction, 
+    #    but this is robust and covers all quadrants
+    cos_theta = np.cos(theta)
+    cos_safe  = np.where(np.abs(cos_theta) < 1e-6, 1e-6, cos_theta)
+    disp_angle = thickness_in / cos_safe
     A = len(xs_in)
 
     # ── 4.14 Build table of θ and displacement ────────────────
