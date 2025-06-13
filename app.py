@@ -6,6 +6,7 @@ import json
 import plotly.graph_objects as go
 from io import BytesIO
 from scipy.interpolate import UnivariateSpline
+import helper
 
 
 st.set_page_config(layout="wide")
