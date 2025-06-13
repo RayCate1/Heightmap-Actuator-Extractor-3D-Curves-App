@@ -4,7 +4,6 @@ import trimesh
 import pandas as pd
 import json
 import plotly.graph_objects as go
-import math
 from io import BytesIO
 from scipy.interpolate import UnivariateSpline
 
