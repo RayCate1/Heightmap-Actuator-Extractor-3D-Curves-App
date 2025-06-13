@@ -4,8 +4,10 @@ import trimesh
 import pandas as pd
 import json
 import plotly.graph_objects as go
+import math
 from io import BytesIO
 from scipy.interpolate import UnivariateSpline
+
 
 st.set_page_config(layout="wide")
 st.title("Heightmap Actuator Extractor & 3D Curves ahhh")
