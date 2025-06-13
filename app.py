@@ -85,32 +85,28 @@ if st.button("Process"):
         if len(idxs):
             H_mm[i, idxs] = locs[:, 1]
 
-    # 4.8 Fill any fully-empty actuator rows
-    for i in range(len(xs_mesh)):
-        if np.isnan(H_mm[i]).all():
-            if i > 0 and not np.isnan(H_mm[i-1]).all():
-                H_mm[i] = H_mm[i-1]
-            elif i < len(xs_mesh)-1 and not np.isnan(H_mm[i+1]).all():
-                H_mm[i] = H_mm[i+1]
-
-    # NEW: apply the vertical shift if requested
+    # Apply the vertical shift if requested
     if shift_zero:
         half_y_span = (ymax - ymin) / 2.0
         H_mm = H_mm - half_y_span
-
-        # 4.8 Fill any fully-empty actuator rows
+        
+    # ── 4.8b Smooth/spline-interpolate any remaining NaNs ─────────
     for i in range(len(xs_mesh)):
-        if np.isnan(H_mm[i]).all():
-            if i > 0 and not np.isnan(H_mm[i-1]).all():
-                H_mm[i] = H_mm[i-1]
-            elif i < len(xs_mesh)-1 and not np.isnan(H_mm[i+1]).all():
-                H_mm[i] = H_mm[i+1]
-
-        # 4.8b Interpolate any remaining NaNs along each actuator row
-    for i in range(len(xs_mesh)):
-        row = pd.Series(H_mm[i, :])
-        row = row.interpolate(method='linear', limit_direction='both')
-        H_mm[i, :] = row.values
+        row   = H_mm[i, :]           # the mm heights for actuator i
+        idx   = np.arange(nz)        # sample indices
+        valid = ~np.isnan(row)       # mask of good points
+    
+        # Only fit if we have at least 4 non-NaNs (for a cubic spline)
+        if valid.sum() >= 4:
+            # fit a cubic spline through the known points
+            spline = UnivariateSpline(idx[valid], row[valid], k=3, s=0)
+            # evaluate it at every slice index (fills NaNs smoothly)
+            H_mm[i, :] = spline(idx)
+        else:
+            # fallback: linear/constant fill if too few points
+            H_mm[i, :] = pd.Series(row).interpolate(
+                method='linear', limit_direction='both'
+            ).values
         
     # 4.9 Convert outputs to Imperial
     H_in = H_mm / 25.4
