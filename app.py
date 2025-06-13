@@ -152,89 +152,89 @@ if st.button("Process"):
         v = velocity_vectors[0, j]
         print(f"Actuator 1, slice {j}: v = {{vx={v[0]:.3f}, vy={v[1]:.3f}, vz={v[2]:.3f}}}")
 
-    # ── 4.14 Build table of θ and displacement ────────────────
-    angle_rows = []
-    for i in range(A):
-        for j in range(nz):
-            angle_rows.append({
-                "Actuator":  i+1,
-                "Slice":     j,
-                "vy":        float(round(vy[i, j],    4)),
-                "vz":        float(round(vz[i, j],    4)),
-                "θ (deg)":   float(round(np.degrees(theta[i, j]), 2)),
-                "disp (in)": float(round(disp_angle[i, j],       4)),
-                "formula":   "d = t / cos(θ)"
-            })
-    angle_df = pd.DataFrame(angle_rows)
-    with st.expander("Angle-Based Displacement", expanded=False):
-        st.subheader("Angle-Based Displacement")
+    # # ── 4.14 Build table of θ and displacement ────────────────
+    # angle_rows = []
+    # for i in range(A):
+    #     for j in range(nz):
+    #         angle_rows.append({
+    #             "Actuator":  i+1,
+    #             "Slice":     j,
+    #             "vy":        float(round(vy[i, j],    4)),
+    #             "vz":        float(round(vz[i, j],    4)),
+    #             "θ (deg)":   float(round(np.degrees(theta[i, j]), 2)),
+    #             "disp (in)": float(round(disp_angle[i, j],       4)),
+    #             "formula":   "d = t / cos(θ)"
+    #         })
+    # angle_df = pd.DataFrame(angle_rows)
+    # with st.expander("Angle-Based Displacement", expanded=False):
+    #     st.subheader("Angle-Based Displacement")
 
-    # disp_angle[i,j] == thickness_in / cos(theta[i,j])
-    disp_half  = disp_angle  / 2.0
+    # # disp_angle[i,j] == thickness_in / cos(theta[i,j])
+    # disp_half  = disp_angle  / 2.0
 
-    # build the top/bottom curves using half of t/cos(theta)
-    top_curve  = H_in + disp_half   # shape (A, nz)
-    bot_curve  = H_in - disp_half
+    # # build the top/bottom curves using half of t/cos(theta)
+    # top_curve  = H_in + disp_half   # shape (A, nz)
+    # bot_curve  = H_in - disp_half
 
-    if zero_disp:
-        top_curve -= top_curve[:, 0][:, None]
-        bot_curve -= bot_curve[:, 0][:, None]
+    # if zero_disp:
+    #     top_curve -= top_curve[:, 0][:, None]
+    #     bot_curve -= bot_curve[:, 0][:, None]
 
-    disp_rows = []
-    for i in range(A):
-        for kind, curve in (("top", top_curve), ("bottom", bot_curve)):
-            row = {"Actuator": i+1, "Type": kind}
-            for j in range(nz):
-                row[f"Z[{j}]"] = float(round(curve[i, j], 3))
-            disp_rows.append(row)
-    disp_df = pd.DataFrame(disp_rows)
-    with st.expander("Displaced Height Data (inches) — Top & Bottom Curves", expanded=False):
-        st.dataframe(disp_df, use_container_width=True)
-    # ── 4.16 Angle‐Based Displacement per Point ──────────────────
-    angle_disp_rows = []
-    for i in range(A):
-        row = {"Actuator": i+1}
-        for j in range(nz):
-            v = disp_angle[i, j]
-            row[f"Z[{j}]"] = float(round(v, 4))
-        angle_disp_rows.append(row)
-    angle_disp_df = pd.DataFrame(angle_disp_rows)
+    # disp_rows = []
+    # for i in range(A):
+    #     for kind, curve in (("top", top_curve), ("bottom", bot_curve)):
+    #         row = {"Actuator": i+1, "Type": kind}
+    #         for j in range(nz):
+    #             row[f"Z[{j}]"] = float(round(curve[i, j], 3))
+    #         disp_rows.append(row)
+    # disp_df = pd.DataFrame(disp_rows)
+    # with st.expander("Displaced Height Data (inches) — Top & Bottom Curves", expanded=False):
+    #     st.dataframe(disp_df, use_container_width=True)
+    # # ── 4.16 Angle‐Based Displacement per Point ──────────────────
+    # angle_disp_rows = []
+    # for i in range(A):
+    #     row = {"Actuator": i+1}
+    #     for j in range(nz):
+    #         v = disp_angle[i, j]
+    #         row[f"Z[{j}]"] = float(round(v, 4))
+    #     angle_disp_rows.append(row)
+    # angle_disp_df = pd.DataFrame(angle_disp_rows)
 
-    with st.expander("Angle-Based Displacement Data", expanded=False):
-        st.subheader("Angle-Based Displacement (inches per slice)")
-        st.dataframe(angle_disp_df, use_container_width=True)
-    # ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
-    st.subheader("Displaced Curves in 3D")
-    fig = go.Figure()
-    samp = np.arange(nz)
+    # with st.expander("Angle-Based Displacement Data", expanded=False):
+    #     st.subheader("Angle-Based Displacement (inches per slice)")
+    #     st.dataframe(angle_disp_df, use_container_width=True)
+    # # ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
+    # st.subheader("Displaced Curves in 3D")
+    # fig = go.Figure()
+    # samp = np.arange(nz)
 
-    for i in range(A):
-        fig.add_trace(go.Scatter3d(
-            x=np.full(nz, i+1),
-            y=samp,
-            z=top_curve[i, :],
-            mode='lines',
-            name=f"Act {i+1} Top"
-        ))
-        fig.add_trace(go.Scatter3d(
-            x=np.full(nz, i+1),
-            y=samp,
-            z=bot_curve[i, :],
-            mode='lines',
-            name=f"Act {i+1} Bottom"
-        ))
+    # for i in range(A):
+    #     fig.add_trace(go.Scatter3d(
+    #         x=np.full(nz, i+1),
+    #         y=samp,
+    #         z=top_curve[i, :],
+    #         mode='lines',
+    #         name=f"Act {i+1} Top"
+    #     ))
+    #     fig.add_trace(go.Scatter3d(
+    #         x=np.full(nz, i+1),
+    #         y=samp,
+    #         z=bot_curve[i, :],
+    #         mode='lines',
+    #         name=f"Act {i+1} Bottom"
+    #     ))
 
-    fig.update_layout(
-        scene=dict(
-            xaxis_title="Actuator #",
-            xaxis=dict(autorange="reversed"),
-            yaxis_title="Sample #",
-            zaxis_title="Displaced Height (in)"
-        ),
-        height=600,
-        margin=dict(l=20, r=20, t=40, b=20)
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    # fig.update_layout(
+    #     scene=dict(
+    #         xaxis_title="Actuator #",
+    #         xaxis=dict(autorange="reversed"),
+    #         yaxis_title="Sample #",
+    #         zaxis_title="Displaced Height (in)"
+    #     ),
+    #     height=600,
+    #     margin=dict(l=20, r=20, t=40, b=20)
+    # )
+    # st.plotly_chart(fig, use_container_width=True)
 
     # # ── Visualize Curves + Normals ───────────────────────────────
     # st.subheader("3D Curves with Surface Normals")
