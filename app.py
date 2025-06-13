@@ -195,7 +195,19 @@ if st.button("Process"):
     disp_df = pd.DataFrame(disp_rows)
     with st.expander("Displaced Height Data (inches) — Top & Bottom Curves", expanded=False):
         st.dataframe(disp_df, use_container_width=True)
+    # ── 4.16 Angle‐Based Displacement per Point ──────────────────
+    angle_disp_rows = []
+    for i in range(A):
+        row = {"Actuator": i+1}
+        for j in range(nz):
+            v = disp_angle[i, j]
+            row[f"Z[{j}]"] = float(round(v, 4))
+        angle_disp_rows.append(row)
+    angle_disp_df = pd.DataFrame(angle_disp_rows)
 
+    with st.expander("Angle-Based Displacement Data", expanded=False):
+        st.subheader("Angle-Based Displacement (inches per slice)")
+        st.dataframe(angle_disp_df, use_container_width=True)
     # ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
     st.subheader("Displaced Curves in 3D")
     fig = go.Figure()
