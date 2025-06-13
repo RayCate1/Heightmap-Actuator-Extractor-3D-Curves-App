@@ -152,9 +152,6 @@ if st.button("Process"):
         v = velocity_vectors[0, j]
         print(f"Actuator 1, slice {j}: v = {{vx={v[0]:.3f}, vy={v[1]:.3f}, vz={v[2]:.3f}}}")
 
-    from helper import calculate_velocity_angle
-    calculate_velocity_angle(velocity_vectors)
-
     # ── 4.14 Build table of θ and displacement ────────────────
     angle_rows = []
     for i in range(A):
