@@ -28,6 +28,10 @@ with b2:
         "Re-zero at mid-height (shift all heights down by half the bounding-box Y)", 
         value=False
     )
+    zero_first = st.checkbox(
+        "Relative Movment (Actuators will start at zero, and be given displacment heights)",
+        value=False
+    )
 # ── 4) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
     if not uploaded:
@@ -97,7 +101,12 @@ if st.button("Process"):
     # 4.9 Convert outputs to Imperial
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
+    # ── optional zeroing: subtract the first-slice height from each actuator’s curve
+    if zero_first:
+        # H_in.shape == (num_actuators, nz)
+        H_in = H_in - H_in[:, 0][:, np.newaxis]
 
+    
     # ── 4.11 Heights table (inches) ─────────────────────────
     rows = []
     for i, xi in enumerate(xs_in, start=1):
