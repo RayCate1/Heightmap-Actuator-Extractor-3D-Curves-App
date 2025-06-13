@@ -127,33 +127,33 @@ if st.button("Process"):
         st.subheader("Parent Height Data (inches)")
         st.dataframe(df, use_container_width=True)
 
-    # ── 4.12 Fit spline → get dH/ds (vy) ────────────────────────
-    s  = np.arange(nz)
-    vy = np.zeros_like(H_in)
-    for i in range(len(xs_in)):
-        H_i    = H_in[i, :]
-        spline = UnivariateSpline(s, H_i, k=3, s=0)
-        vy[i, :] = spline.derivative(n=1)(s)
+    # Number of actuators & slices
+    A = len(xs_in)       # number of actuators
+    s = np.arange(nz)    # slice‐index parameter
+    
+    # Prepare arrays
+    vy = np.zeros_like(H_in)      # ∂H/∂s for each actuator & slice
+    vz = np.ones_like(H_in)       # ds/ds = 1 for each slice
+    vx = np.zeros_like(H_in)      # no x‐movement
+    
+    # Fit spline & compute derivative for each actuator
+    for i in range(A):
+        H_i    = H_in[i, :]                          # height vs. slice
+        spline = UnivariateSpline(s, H_i, k=3, s=0)  # exact cubic fit
+        dHds   = spline.derivative(n=1)(s)           # analytic derivative
+        vy[i, :] = dHds
+    
+    # Now vx, vy, vz together are your velocity vectors at each point:
+    # velocity_vectors[i, j] = (vx[i,j], vy[i,j], vz[i,j])
+    velocity_vectors = np.stack([vx, vy, vz], axis=-1)  # shape (A, nz, 3)
+    
+    # Example: print the first few velocities for actuator 1
+    for j in range(5):
+        v = velocity_vectors[0, j]
+        print(f"Actuator 1, slice {j}: v = {{vx={v[0]:.3f}, vy={v[1]:.3f}, vz={v[2]:.3f}}}")
 
-    # ── 4.13 Compute angle‐based displacement ───────────────────
-    thickness_in = comp_thickness  # inches
-    
-    vz = np.ones_like(vy)    # dz/ds = 1 slice/sample
-    
-    # 1) directly compute the angle from the vertical (y-axis)
-    #    θ = atan2(opposite, adjacent) = atan2(vz, vy)
-    theta = np.arctan2(vz, vy)   # shape (A, nz), in radians
-    
-    # 2) if you want degrees instead:
-    theta_deg = np.degrees(theta)
-    
-    # 3) displacement = thickness / cos(θ)
-    #    cos(θ) = vy / sqrt(vy^2 + vz^2) by construction, 
-    #    but this is robust and covers all quadrants
-    cos_theta = np.cos(theta)
-    cos_safe  = np.where(np.abs(cos_theta) < 1e-6, 1e-6, cos_theta)
-    disp_angle = thickness_in / cos_safe
-    A = len(xs_in)
+    from helper import calculate_velocity_angle
+    calculate_velocity_angle(velocity_vectors)
 
     # ── 4.14 Build table of θ and displacement ────────────────
     angle_rows = []
