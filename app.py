@@ -123,18 +123,18 @@ if st.button("Process"):
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
     A = len(xs_in)   # number of actuators
-
-    # The equation relating theta θ (angle between x axis and curve), the specified thickness k, of the frp and the 
-    # displacment d (disance the vertical actuators need to add onto the original cuve to compansate for bending), is 
-    # d=((k/Cos(θ))-k)/2. From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
     
-    # Compute physical slice spacing. 
-    #   - dz_mm: horizontal distance between consecutive Z-slices, in millimeters (mm)
+    # The equation relating theta θ (angle between x axis and curve), the distance between axles k, of the frp and the 
+    # displacment d (disance the vertical actuators need to add onto the original cuve to compansate for bending), is 
+    # d=k/Cos(θ). From there, you simply add plus or minus 1/2 d to the parent curves. 
+    
+    # 1) Compute physical slice spacing
+    #   - dz_mm: horizontal (Z-axis) distance between consecutive slices, in millimeters (mm)
     #   - ds_in: horizontal distance per slice, in inches (in)
     dz_mm = (zmax - zmin) / (nz - 1)   # mm per slice
     ds_in = dz_mm / 25.4               # inches per slice
     
-    # Fit a cubic spline per actuator to obtain smooth derivative dH/ds
+    # 2) Fit a cubic spline per actuator to obtain smooth derivative dH/ds
     #    - s_phys: physical coordinate along horizontal (Z) axis in inches
     #    - H_in[i, :] holds heights in inches
     s_phys = np.arange(nz) * ds_in      # inches along Z-axis
@@ -145,27 +145,47 @@ if st.button("Process"):
         # Derivative dy/ds_phys at each slice (unitless)
         vy[i, :] = spline.derivative(n=1)(s_phys)
     
-    # Compute tangent angle relative to horizontal axis (in degrees)
+    # 3) Compute tangent angle relative to horizontal axis (in degrees)
     #    - tangent vector in (horizontal, vertical) plane = (Δs, ΔH) = (1, m)
-    #    - arctan2(vertical_component, horizontal_component) returns angle in radians; convert to degrees
+    #    - arctan2(vertical_component, horizontal_component) returns radians; convert to degrees
     angle_vs_horizontal = np.degrees(np.arctan2(vy, 1.0))  # degrees
-    k = (heat_k * 2) + (wheel_radius * 2) + comp_thickness
-    # Compute displacement using angle-based formula: d = (k/cos(θ) - k)/2
-    # NumPy’s cos() expects radians, so convert degrees back to radians with np.radians()
     
-    disp = k / np.cos(np.radians(angle_vs_horizontal))  # inches
-    disp_offset = disp / 2.0
-    # Optional: if relative movement is desired, subtract first-slice value
+    # 4) Determine effective span k (inches) between actuators/components
+    k = (heat_k * 2) + (wheel_radius * 2) + comp_thickness
+    
+    # 5) Compute displacement: full d = k / cos(θ), then use half-displacement
+    #    NumPy’s cos() expects radians, so convert degrees back to radians
+    d_full = k / np.cos(np.radians(angle_vs_horizontal))  # total displacement d = k/Cos(θ)
+    disp = d_full / 2.0                                     # half-displacement to apply (inches)
+    
+    # 6) Build and display table: Actuator, Slice, slope, angle vs horizontal, and half-displacement
+    df_rows = []
+    for i in range(A):
+        for j in range(nz):
+            df_rows.append({
+                "Actuator":            i+1,
+                "Slice":               j,
+                "slope (in/in)":       float(round(vy[i, j],      4)),
+                "angle vs horiz (°)":   float(round(angle_vs_horizontal[i, j], 2)),
+                "disp_half (in)":      float(round(disp[i, j],     4))
+            })
+    disp_half_df = pd.DataFrame(df_rows)
+    
+    st.subheader("Half-Displacement per Point")
+    st.dataframe(disp_half_df, use_container_width=True)
+    
+    # 7) Build new top/bottom curves using pointwise half-displacement
+    #    New curves: H_top = H_in + disp, H_bot = H_in - disp
     if zero_disp:
-        # compute full top and bottom arrays
-        top_curve = H_in + disp_offset
-        bot_curve = H_in - disp_offset
-        # subtract each actuator's starting height
+        # zero-relative: subtract each actuator's starting height afterward
+        top_curve = H_in + disp
+        bot_curve = H_in - disp
         top_curve -= top_curve[:, 0][:, None]
         bot_curve -= bot_curve[:, 0][:, None]
     else:
-        top_curve = H_in + disp_offset
-        bot_curve = H_in - disp_offset
+        top_curve = H_in + disp
+        bot_curve = H_in - disp
+
     
 
 
@@ -203,7 +223,7 @@ if st.button("Process"):
     # Display new curves table
     df_rows = []
     for i in range(A):
-        for kind, curve in (('top', top_curve), ('bottom', bot_curve)):
+        for kind, curve in (("top", top_curve), ("bottom", bot_curve)):
             row = {"Actuator": i+1, "Type": kind}
             for j in range(nz):
                 row[f"Z[{j}]"] = float(round(curve[i, j], 4))
@@ -241,22 +261,17 @@ if st.button("Process"):
         st.plotly_chart(fig, use_container_width=True)
         
     # 3D Viewer: plot top & bottom displaced curves
-    st.subheader("3D Viewer: Displaced Curves")
     fig3d = go.Figure()
     samp = np.arange(nz)
-    # Plot each actuator's top and bottom curves
     for i in range(A):
-        top_z = H_in[i, :] + disp_offset[i, :]
-        bot_z = H_in[i, :] - disp_offset[i, :]
         fig3d.add_trace(go.Scatter3d(
-            x=np.full(nz, i+1), y=samp, z=top_z,
+            x=np.full(nz, i+1), y=samp, z=top_curve[i, :],
             mode='lines', name=f"Act {i+1} Top"
         ))
         fig3d.add_trace(go.Scatter3d(
-            x=np.full(nz, i+1), y=samp, z=bot_z,
+            x=np.full(nz, i+1), y=samp, z=bot_curve[i, :],
             mode='lines', name=f"Act {i+1} Bottom"
         ))
-    # Layout adjustments
     fig3d.update_layout(
         scene=dict(
             xaxis_title="Actuator #",
