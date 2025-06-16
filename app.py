@@ -113,18 +113,18 @@ if st.button("Process"):
     # d=k/Cos(θ). From there, you simply add plus or minus 1/2 d to the parent curves. 
     
     # 1) Compute physical slice spacing
-    #   - ds_in: horizontal distance per slice, in inches (in)
+    #   - dz_in: horizontal distance per slice, in inches (in)
     dz_in = (zmax - zmin) / (nz - 1)               # inches per slice
     
-    # 2) Fit a cubic spline per actuator to obtain smooth derivative dH/ds
+    # 2) Fit a cubic spline per actuator to obtain smooth derivative dH/dz
     #    - s_phys: physical coordinate along horizontal (Z) axis in inches
     #    - H_in[i, :] holds heights in inches
-    s_phys = np.arange(nz) * ds_in      # inches along Z-axis
+    s_phys = np.arange(nz) * dz_in      # inches along Z-axis
     vy = np.zeros_like(H_in)            # slope array (dimensionless: in/in)
     for i in range(A):
         # Fit exact cubic spline through (s_phys, H_in[i,:])
         spline = UnivariateSpline(s_phys, H_in[i, :], k=3, s=0)
-        # Derivative dy/ds_phys at each slice (unitless)
+        # Derivative dy/dz_phys at each slice (unitless)
         vy[i, :] = spline.derivative(n=1)(s_phys)
     
     # 3) Compute tangent angle relative to horizontal axis (in degrees)
