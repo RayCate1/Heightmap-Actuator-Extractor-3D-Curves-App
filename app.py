@@ -23,6 +23,7 @@ with b1:
     width_val      = st.number_input("Bounds Width (ft)", value=6.0)
     height_val     = st.number_input("Bounds Height (ft)", value=4.0)
     comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
+    wheel_radius    = st.number_input("Wheel Radius (in)", value=1.0)
 with b2:
     num_actuators = st.number_input("Number of Actuators", min_value=1, value=10, step=1)
     nz            = st.slider("Z-Resolution (# slices)", 10, 10_000, 200)
@@ -36,6 +37,7 @@ with b2:
         "Relative Movment (Actuators will start at zero, and be given heights relative to their start position)",
         value=False
     )
+    heat_k    = st.number_input("Heating Element Thickness (in)", value=1.0)
 # ── 3) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
     # If no mesh -> Error message
