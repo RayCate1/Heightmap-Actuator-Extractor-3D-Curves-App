@@ -203,7 +203,7 @@ if st.button("Process"):
             })
     disp_half_df = pd.DataFrame(df_rows)
     with st.expander("Half-Displacement per Point", expanded=False):
-        st.dataframe(angle_disp_df, use_container_width=True)
+        st.dataframe(disp_half_df, use_container_width=True)
     # Display new curves table
     df_rows = []
     for i in range(A):
