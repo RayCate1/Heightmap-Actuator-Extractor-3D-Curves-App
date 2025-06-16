@@ -159,10 +159,11 @@ if st.button("Process"):
     #    - tangent vector in (horizontal, vertical) plane = (Δs, ΔH) = (1, m)
     #    - arctan2(vertical_component, horizontal_component) returns angle in radians; convert to degrees
     angle_vs_horizontal = np.degrees(np.arctan2(vy, 1.0))  # degrees
-    
+    k = (heat_k * 2) + (wheel_radius * 2) + comp_thickness
     # Compute displacement using angle-based formula: d = (k/cos(θ) - k)/2
     # NumPy’s cos() expects radians, so convert degrees back to radians with np.radians()
-    disp = (comp_thickness / np.cos(np.radians(angle_vs_horizontal)) - comp_thickness) / 2.0  # inches
+    
+    disp = k / np.cos(np.radians(angle_vs_horizontal)  # inches
     
     # Build and display table: Actuator, Slice, slope, angle vs horizontal, and displacement
     df_rows = []
@@ -176,21 +177,19 @@ if st.button("Process"):
                 "disp (in)":           float(round(disp[i, j],     4))
             })
     angle_disp_df = pd.DataFrame(df_rows)
-    
-    # Build new top/bottom curves using pointwise displacement + half thickness
-    # New curves: H_top = H_in + (disp + comp_thickness/2), H_bot = H_in - (disp + comp_thickness/2)
-    disp_offset = heat_k + wheel_radius + disp + (comp_thickness/2.0)  # total offset from parent
+
+    CurveDisp = disp / 2.0
     # Optional: if relative movement is desired, subtract first-slice value
     if zero_disp:
         # compute full top and bottom arrays
-        top_curve = H_in + disp_offset
-        bot_curve = H_in - disp_offset
+        top_curve = H_in + CurveDisp
+        bot_curve = H_in - CurveDisp
         # subtract each actuator's starting height
         top_curve -= top_curve[:, 0][:, None]
         bot_curve -= bot_curve[:, 0][:, None]
     else:
-        top_curve = H_in + disp_offset
-        bot_curve = H_in - disp_offset
+        top_curve = H_in + CurveDisp
+        bot_curve = H_in - CurveDisp
     
     # 7) Display new curves table
     df_rows = []
