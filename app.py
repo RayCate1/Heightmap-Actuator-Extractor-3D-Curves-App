@@ -119,6 +119,7 @@ if st.button("Process"):
     # Convert outputs to Imperial
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
+    A = len(xs_in)   # number of actuators
 
     # Heights table (inches) 
     rows = []
