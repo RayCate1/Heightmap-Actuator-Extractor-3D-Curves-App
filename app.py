@@ -140,39 +140,29 @@ if st.button("Process"):
     # d=(1/2)k(Sqrt(1+m^2)-1). A beutiful formula that takes the desired thickness and spits out displacment compensation
     # for every point! From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
 
-    # Convert slice positions to physical Z (inches)
-    z_mm = np.linspace(zmin, zmax, nz)          # mesh z‐coords in mm
-    z_in = z_mm / 25.4                          # convert to inches
-    
-    # Compute m = dy/dz via spline fit in (z_in, H_in) space
-    A    = len(xs_in)
-    H_in = H_mm / 25.4                          # heights in inches
-    m    = np.zeros_like(H_in)
-    
+    # 1) Compute slope m = dH/ds via spline
+    s  = np.arange(nz)
+    vy = np.zeros_like(H_in)
     for i in range(A):
-        # fit H_i(z)
-        spline  = UnivariateSpline(z_in, H_in[i, :], k=3, s=0)
-        m[i, :] = spline.derivative(n=1)(z_in)  # dy/dz at each z
-    
-    # (Alternatively, simple finite‐diff:)
-    # ds = z_in[1] - z_in[0]
-    # m = np.gradient(H_in, ds, axis=1)
-    
-    # 3) Compute displacement via formula:
-    k    = comp_thickness
-    disp = k * (np.sqrt(1 + m**2) - 1) / 2.0     # shape (A, nz)
-    
-    # 4) Build & show the table of slopes and displacements
+        spline    = UnivariateSpline(s, H_in[i, :], k=3, s=0)
+        vy[i, :]  = spline.derivative(n=1)(s)
+
+    # 2) Compute displacement via simplified formula
+    k = comp_thickness
+    disp = k * (np.sqrt(1 + vy**2) - 1) / 2.0   # shape (A, nz)
+
+    # 3) Build a flat table [Actuator, Slice, slope, disp]
     rows = []
     for i in range(A):
         for j in range(nz):
             rows.append({
-                "Actuator":  i+1,
-                "Z (inches)": float(round(z_in[j], 3)),
-                "slope dy/dz": float(round(m[i, j], 4)),
+                "Actuator":    i+1,
+                "Slice":       j,
+                "slope m":     float(round(vy[i, j],  4)),
                 "disp (in)":   float(round(disp[i, j],4))
             })
     disp_df = pd.DataFrame(rows)
-    
-    st.subheader("Slope dy/dz & Displacement")
+
+    # 4) Show in Streamlit
+    st.subheader("Pointwise Slope & Displacement")
     st.dataframe(disp_df, use_container_width=True)
