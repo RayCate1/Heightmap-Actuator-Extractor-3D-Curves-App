@@ -197,8 +197,7 @@ if st.button("Process"):
                 row[f"Z[{j}]"] = float(round(curve[i, j], 4))
             df_rows.append(row)
     new_curves_df = pd.DataFrame(df_rows)
-    st.subheader("Displaced Curves Table (Top & Bottom)")
-    with st.expander("Show Displaced Curves Data", expanded=False):
+    with st.expander("Displaced Curves Table (Top & Bottom)", expanded=False):
         st.dataframe(new_curves_df, use_container_width=True)
     #3D viewers 
     # Parent Curves 3D Visualizer 
