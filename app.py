@@ -170,29 +170,33 @@ if st.button("Process"):
     # d=(1/2)k(Sqrt(1+m^2)-1). A beutiful formula that takes the desired thickness and spits out displacment compensation
     # for every point! From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
 
-    # 1) Compute slope m = dH/ds via spline
-    s  = np.arange(nz)
-    vy = np.zeros_like(H_in)
-    for i in range(A):
-        spline    = UnivariateSpline(s, H_in[i, :], k=3, s=0)
-        vy[i, :]  = spline.derivative(n=1)(s)
-
-    # 2) Compute displacement via simplified formula
-    k = comp_thickness
-    disp = k * (np.sqrt(1 + vy**2) - 1) / 2.0   # shape (A, nz)
-
-    # 3) Build a flat table [Actuator, Slice, slope, disp]
+    # 1) compute physical slice‐spacing in inches
+    dz_mm  = (zmax - zmin)/(nz - 1)       # mm per slice
+    ds_in  = dz_mm/25.4                   # inches per slice
+    
+    # 2) get slopes m = dH/ds_phys directly via finite‐difference
+    #     H_in shape = (A, nz)
+    vy = np.gradient(H_in, ds_in, axis=1) # now vy units = in/in
+    
+    # 3) compute angle of tangent w.r.t. horizontal:
+    angle_horiz = np.degrees(np.arctan(vy))  
+    #    -> angle from “slice‐axis” (horizontal) up toward height
+    
+    # 4) if you want the angle _from the vertical_ (z‐axis), do:
+    angle_vert  = 90.0 - angle_horiz
+    
+    # 5) pack into a table
     rows = []
     for i in range(A):
         for j in range(nz):
             rows.append({
-                "Actuator":    i+1,
-                "Slice":       j,
-                "slope m":     float(round(vy[i, j],  4)),
-                "disp (in)":   float(round(disp[i, j],4))
+                "Actuator":      i+1,
+                "Slice":         j,
+                "slope m":       float(round(vy[i,j],     4)),
+                "angle vs X (°)":float(round(angle_horiz[i,j],2)),
+                "angle vs Z (°)":float(round(angle_vert[i,j], 2))
             })
-    disp_df = pd.DataFrame(rows)
-
-    # 4) Show in Streamlit
-    st.subheader("Pointwise Slope & Displacement")
-    st.dataframe(disp_df, use_container_width=True)
+    angle_df = pd.DataFrame(rows)
+    
+    st.subheader("True Tangent Angles (with physical Δs)")
+    st.dataframe(angle_df, use_container_width=True)
