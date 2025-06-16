@@ -170,40 +170,51 @@ if st.button("Process"):
     # d=(1/2)k(Sqrt(1+m^2)-1). A beutiful formula that takes the desired thickness and spits out displacment compensation
     # for every point! From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
 
-    # ── 1) physical slice‐spacing in inches ─────────────────
-    dz_mm      = (zmax - zmin) / (nz - 1)   # mm per slice
-    ds_in      = dz_mm / 25.4               # inches per slice
-    # (we’ll use a spline in s_phys, but for the angle you only need vy)
-
-    # ── 2) fit a spline → dH/ds_phys (vy) ───────────────────
-    s_phys = np.arange(nz) * ds_in          # physical z‐coordinate
-    vy     = np.zeros_like(H_in)
+    # 1) Compute physical slice spacing
+    # dz_mm is the horizontal distance between consecutive Z-slices, in millimeters.
+    dz_mm = (zmax - zmin) / (nz - 1)   # mm per slice
+    
+    # Convert that spacing into inches for correct derivative units.
+    ds_in = dz_mm / 25.4               # inches per slice
+    
+    # 2) Fit a spline per actuator to get a smooth derivative dH/ds
+    # s_phys is the physical coordinate along the horizontal (Z) axis in inches for each slice.
+    s_phys = np.arange(nz) * ds_in      # array of physical slice positions (inches)
+    
+    # Prepare an array vy of the same shape as H_in to hold slope values.
+    vy = np.zeros_like(H_in)             # shape (A, nz)
+    
+    # Loop over each actuator (row in H_in) to fit a cubic spline and compute dH/ds
     for i in range(A):
-        spline   = UnivariateSpline(s_phys, H_in[i, :], k=3, s=0)
+        # Fit an exact cubic spline through (s_phys, H_in[i,:])
+        spline = UnivariateSpline(s_phys, H_in[i, :], k=3, s=0)
+        # Evaluate its first derivative at every s_phys to get slope m = dy/ds_phys
         vy[i, :] = spline.derivative(n=1)(s_phys)
-
-    # ── 3) compute angle vs Z-axis using atan2 ──────────────
-    #    angle = atan2(horizontal_component, vertical_component)
-    #    horizontal = 1 (one slice step per s_phys), vertical = vy
+    
+    # 3) Compute the true tangent angle relative to the vertical (height) axis
+    # In the (horizontal, height) plane, the tangent vector is (Δs, ΔH) = (1, m)
+    # atan2(horizontal_component, vertical_component) gives angle from vertical.
     angle_vs_z = np.degrees(np.arctan2(1.0, vy))  # shape (A, nz)
-
-    # ── 4) compute displacement with d = k*(√(1+vy²) – 1)/2 ──
-    k    = comp_thickness
-    disp = k * (np.sqrt(1 + vy**2) - 1) / 2.0
-
-    # ── 5) build & show the table ───────────────────────────
-    rows = []
+    
+    # 4) Compute displacement using the simplified formula d = k*(√(1+m^2)-1)/2
+    k = comp_thickness                                         # composite thickness (inches)
+    disp = k * (np.sqrt(1 + vy**2) - 1) / 2.0                  # per-point displacement
+    
+    # 5) Build and display a table of Actuator, Slice, slope, angle vs Z, and displacement
+    df_rows = []
     for i in range(A):
         for j in range(nz):
-            rows.append({
-                "Actuator":    i+1,
-                "Slice":       j,
-                "slope m":     float(round(vy[i,j],      4)),
-                "angle vs Z (°)": float(round(angle_vs_z[i,j], 2)),
-                "disp (in)":     float(round(disp[i,j],     4))
+            df_rows.append({
+                "Actuator":      i+1,
+                "Slice":         j,
+                "slope m":       float(round(vy[i, j],      4)),
+                "angle vs Z (°)":float(round(angle_vs_z[i, j], 2)),
+                "disp (in)":     float(round(disp[i, j],     4))
             })
-    angle_disp_df = pd.DataFrame(rows)
-
+    angle_disp_df = pd.DataFrame(df_rows)
+    
+    # Show results in Streamlit under an expander for neatness
     st.subheader("True Tangent Angle vs Z & Displacement")
     st.dataframe(angle_disp_df, use_container_width=True)
+
 
