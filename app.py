@@ -1,3 +1,4 @@
+
 import streamlit as st
 import numpy as np
 import trimesh
@@ -22,10 +23,12 @@ with b1:
     #Prompt user input
     width_val      = st.number_input("Bounds Width (ft)", value=6.0)
     height_val     = st.number_input("Bounds Height (ft)", value=4.0)
-    comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
+    num_actuators  = st.number_input("Number of Actuators", min_value=1, value=10, step=1)
+    nz             = st.number_input("Z-Resolution (# slices)", value=1000)
 with b2:
-    num_actuators = st.number_input("Number of Actuators", min_value=1, value=10, step=1)
-    nz            = st.slider("Z-Resolution (# slices)", 10, 10_000, 200)
+    comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
+    wheel_radius   = st.number_input("Wheel Radius (in)", value=1.0)
+    heat_k         = st.number_input("Heating Element Thickness (in)", value=1.0)
     # Checkbox to shift zero
     shift_zero = st.checkbox(
         "Re-zero at mid-height (shift all heights down by half the bounding-box Y)", 
@@ -176,7 +179,7 @@ if st.button("Process"):
     
     # Build new top/bottom curves using pointwise displacement + half thickness
     # New curves: H_top = H_in + (disp + comp_thickness/2), H_bot = H_in - (disp + comp_thickness/2)
-    disp_offset = disp + comp_thickness/2.0  # total offset from parent
+    disp_offset = heat_k + wheel_radius + disp + (comp_thickness/2.0)  # total offset from parent
     # Optional: if relative movement is desired, subtract first-slice value
     if zero_disp:
         # compute full top and bottom arrays
