@@ -165,14 +165,11 @@ if st.button("Process"):
     
     # The equation relating theta θ (angle between x axis and curve), the specified thickness k, of the frp and the 
     # displacment d (disance the vertical actuators need to add onto the original cuve to compansate for bending), is 
-    # d=(k-kCos(θ))/(2Cos(θ)). To make things simpler on the code end, we will write the angle in terms of the slope 
-    # of the tangent line m or dy/dz. d=(k-kCos(arctan(m)))/(2Cos(arctan(m))). Using trig identities this simplifies to
-    # d=(1/2)k(Sqrt(1+m^2)-1). A beutiful formula that takes the desired thickness and spits out displacment compensation
-    # for every point! From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
-
-    # 1) Compute physical slice spacing
+    # d=((k/Cos(θ))-k)/2. From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
+    # Compute physical slice spacing. 
     #   - dz_mm: horizontal distance between consecutive Z-slices, in millimeters (mm)
     #   - ds_in: horizontal distance per slice, in inches (in)
+
     dz_mm = (zmax - zmin) / (nz - 1)   # mm per slice
     ds_in = dz_mm / 25.4               # inches per slice
     
@@ -189,11 +186,11 @@ if st.button("Process"):
     
     # 3) Compute tangent angle relative to horizontal axis (in degrees)
     #    - tangent vector in (horizontal, vertical) plane = (Δs, ΔH) = (1, m)
-    #    - arctan2(vertical_component, horizontal_component) returns radians; convert to degrees
-    grid = vy  # using vy for clarity
+    #    - arctan2(vertical_component, horizontal_component) returns angle in radians; convert to degrees
     angle_vs_horizontal = np.degrees(np.arctan2(vy, 1.0))  # degrees
     
     # 4) Compute displacement using angle-based formula: d = (k/cos(θ) - k)/2
+    #    NumPy’s cos() expects radians, so convert degrees back to radians with np.radians()
     disp = (comp_thickness / np.cos(np.radians(angle_vs_horizontal)) - comp_thickness) / 2.0  # inches
     
     # 5) Build and display table: Actuator, Slice, slope, angle vs horizontal, and displacement
