@@ -166,14 +166,14 @@ if st.button("Process"):
     # The equation relating theta θ (angle between x axis and curve), the specified thickness k, of the frp and the 
     # displacment d (disance the vertical actuators need to add onto the original cuve to compansate for bending), is 
     # d=((k/Cos(θ))-k)/2. From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
+    
     # Compute physical slice spacing. 
     #   - dz_mm: horizontal distance between consecutive Z-slices, in millimeters (mm)
     #   - ds_in: horizontal distance per slice, in inches (in)
-
     dz_mm = (zmax - zmin) / (nz - 1)   # mm per slice
     ds_in = dz_mm / 25.4               # inches per slice
     
-    # 2) Fit a cubic spline per actuator to obtain smooth derivative dH/ds
+    # Fit a cubic spline per actuator to obtain smooth derivative dH/ds
     #    - s_phys: physical coordinate along horizontal (Z) axis in inches
     #    - H_in[i, :] holds heights in inches
     s_phys = np.arange(nz) * ds_in      # inches along Z-axis
@@ -184,16 +184,16 @@ if st.button("Process"):
         # Derivative dy/ds_phys at each slice (unitless)
         vy[i, :] = spline.derivative(n=1)(s_phys)
     
-    # 3) Compute tangent angle relative to horizontal axis (in degrees)
+    # Compute tangent angle relative to horizontal axis (in degrees)
     #    - tangent vector in (horizontal, vertical) plane = (Δs, ΔH) = (1, m)
     #    - arctan2(vertical_component, horizontal_component) returns angle in radians; convert to degrees
     angle_vs_horizontal = np.degrees(np.arctan2(vy, 1.0))  # degrees
     
-    # 4) Compute displacement using angle-based formula: d = (k/cos(θ) - k)/2
-    #    NumPy’s cos() expects radians, so convert degrees back to radians with np.radians()
+    # Compute displacement using angle-based formula: d = (k/cos(θ) - k)/2
+    # NumPy’s cos() expects radians, so convert degrees back to radians with np.radians()
     disp = (comp_thickness / np.cos(np.radians(angle_vs_horizontal)) - comp_thickness) / 2.0  # inches
     
-    # 5) Build and display table: Actuator, Slice, slope, angle vs horizontal, and displacement
+    # Build and display table: Actuator, Slice, slope, angle vs horizontal, and displacement
     df_rows = []
     for i in range(A):
         for j in range(nz):
@@ -209,6 +209,22 @@ if st.button("Process"):
     # Display in Streamlit under expander
     st.subheader("Tangent Angle vs Horizontal & Displacement")
     st.dataframe(angle_disp_df, use_container_width=True)
-
-
-
+    
+    # 6) Build new top/bottom curves using pointwise displacement + half thickness
+    #    New curves: H_top = H_in + (disp + comp_thickness/2), H_bot = H_in - (disp + comp_thickness/2)
+    disp_offset = disp + comp_thickness/2.0  # total offset from parent
+    
+    df_rows = []
+    for i in range(A):
+        for kind, sign in (("top", 1), ("bottom", -1)):
+            row = {"Actuator": i+1, "Type": kind}
+            for j in range(nz):
+                z_val = H_in[i, j] + sign * disp_offset[i, j]
+                row[f"Z[{j}]"] = float(round(z_val, 4))
+            df_rows.append(row)
+    new_curves_df = pd.DataFrame(df_rows)
+    
+    # Display new curves table
+    st.subheader("Displaced Curves (Top & Bottom)")
+    with st.expander("Displaced Curves Table", expanded=False):
+        st.dataframe(new_curves_df, use_container_width=True)
