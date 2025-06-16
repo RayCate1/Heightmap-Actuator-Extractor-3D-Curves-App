@@ -182,10 +182,10 @@ if st.button("Process"):
     #Parent data
     rows = []
     for i, xi in enumerate(xs_in, start=1):
-        row = {"Actuator": i, "X (in)": float(round(xi, 3))}
+        row = {"Actuator": i, "X (in)": float(xi)}
         for j in range(nz):
             v = H_in[i-1, j]
-            row[f"Z[{j}]"] = None if np.isnan(v) else float(round(v, 3))
+            row[f"Z[{j}]"] = None if np.isnan(v) else float(v)
         rows.append(row)
     df = pd.DataFrame(rows)
     with st.expander("Parent Height Data (inches)", expanded=False):
@@ -197,9 +197,9 @@ if st.button("Process"):
             df_rows.append({
                 "Actuator":            i+1,
                 "Slice":               j,
-                "slope (in/in)":       float(round(vy[i, j],      4)),
-                "angle vs horiz (°)":   float(round(angle_vs_horizontal[i, j], 2)),
-                "disp_half (in)":      float(round(disp[i, j],     4))
+                "slope (in/in)":       float(vy[i, j]),
+                "angle vs horiz (°)":   float(angle_vs_horizontal[i, j]),
+                "disp_half (in)":      float(disp[i, j])
             })
     disp_half_df = pd.DataFrame(df_rows)
     with st.expander("Half-Displacement per Point", expanded=False):
@@ -210,7 +210,7 @@ if st.button("Process"):
         for kind, curve in (("top", top_curve), ("bottom", bot_curve)):
             row = {"Actuator": i+1, "Type": kind}
             for j in range(nz):
-                row[f"Z[{j}]"] = float(round(curve[i, j], 4))
+                row[f"Z[{j}]"] = float(curve[i, j])
             df_rows.append(row)
     new_curves_df = pd.DataFrame(df_rows)
     with st.expander("Displaced Curves Table", expanded=False):
