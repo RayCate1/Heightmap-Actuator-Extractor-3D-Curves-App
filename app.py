@@ -193,7 +193,7 @@ if st.button("Process"):
                 "Actuator":      i+1,
                 "Slice":         j,
                 "slope m":       float(round(vy[i,j],      4)),
-                "angle vs Z (°)":float(round(angle_vert[i,j],2)),
+                "angle vs Z (°)":float(round(angle_horiz[i,j],2)),
                 "disp (in)":     float(round(disp[i,j],     4))
             })
     angle_disp_df = pd.DataFrame(rows)
