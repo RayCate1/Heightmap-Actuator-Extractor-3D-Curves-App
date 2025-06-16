@@ -170,7 +170,7 @@ if st.button("Process"):
     # d=(1/2)k(Sqrt(1+m^2)-1). A beutiful formula that takes the desired thickness and spits out displacment compensation
     # for every point! From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
 
-    # 1) Compute physical slice spacing
+        # 1) Compute physical slice spacing
     # dz_mm is the horizontal distance between consecutive Z-slices, in millimeters.
     dz_mm = (zmax - zmin) / (nz - 1)   # mm per slice
     
@@ -191,30 +191,31 @@ if st.button("Process"):
         # Evaluate its first derivative at every s_phys to get slope m = dy/ds_phys
         vy[i, :] = spline.derivative(n=1)(s_phys)
     
-    # 3) Compute the true tangent angle relative to the vertical (height) axis
+    # 3) Compute the true tangent angle relative to the horizontal (Z) axis
     # In the (horizontal, height) plane, the tangent vector is (Δs, ΔH) = (1, m)
-    # atan2(horizontal_component, vertical_component) gives angle from vertical.
-    angle_vs_z = np.degrees(np.arctan2(1.0, vy))  # shape (A, nz)
+    # atan2(vertical_component, horizontal_component) gives angle from horizontal.
+    angle_vs_horizontal = np.degrees(np.arctan2(vy, 1.0))  # shape (A, nz)
     
     # 4) Compute displacement using the simplified formula d = k*(√(1+m^2)-1)/2
     k = comp_thickness                                         # composite thickness (inches)
     disp = k * (np.sqrt(1 + vy**2) - 1) / 2.0                  # per-point displacement
     
-    # 5) Build and display a table of Actuator, Slice, slope, angle vs Z, and displacement
+    # 5) Build and display a table of Actuator, Slice, slope, angle vs horizontal, and displacement
     df_rows = []
     for i in range(A):
         for j in range(nz):
             df_rows.append({
-                "Actuator":      i+1,
-                "Slice":         j,
-                "slope m":       float(round(vy[i, j],      4)),
-                "angle vs Z (°)":float(round(angle_vs_z[i, j], 2)),
-                "disp (in)":     float(round(disp[i, j],     4))
+                "Actuator":           i+1,
+                "Slice":              j,
+                "slope m":            float(round(vy[i, j],  4)),
+                "angle vs horizontal":float(round(angle_vs_horizontal[i, j], 2)),
+                "disp (in)":          float(round(disp[i, j],     4))
             })
     angle_disp_df = pd.DataFrame(df_rows)
     
     # Show results in Streamlit under an expander for neatness
-    st.subheader("True Tangent Angle vs Z & Displacement")
-    st.dataframe(angle_disp_df, use_container_width=True)
+    st.subheader("Tangent Angle vs Horizontal & Displacement")
+    st.dataframe(angle_disp_df, use_container_width=True) 
+    
 
 
