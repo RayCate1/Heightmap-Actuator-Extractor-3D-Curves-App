@@ -133,7 +133,36 @@ if st.button("Process"):
     with st.expander("Parent Height Data (inches)", expanded=False):
         st.subheader("Parent Height Data (inches)")
         st.dataframe(df, use_container_width=True)
-        
+
+    # Parent Curves 3D Visualizer 
+    st.subheader("Parent Actuator Curves in 3D")
+
+    fig = go.Figure()
+    A    = len(xs_in)
+    samp = np.arange(nz)
+
+    for i in range(A):
+        fig.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1),      # actuator number
+            y=samp,                   # slice index
+            z=H_in[i, :],             # height in inches
+            mode='lines',
+            line=dict(width=4),
+            name=f"Act {i+1}"
+        ))
+
+    fig.update_layout(
+        scene=dict(
+            xaxis_title="Actuator #",
+            xaxis=dict(autorange="reversed"),
+            yaxis_title="Slice #",
+            zaxis_title="Height (in)"
+        ),
+        height=700,
+        margin=dict(l=20, r=20, t=30, b=20)
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
     # The equation relating theta θ (angle between x axis and curve), the specified thickness k, of the frp and the 
     # displacment d (disance the vertical actuators need to add onto the original cuve to compansate for bending), is 
     # d=(k-kCos(θ))/(2Cos(θ)). To make things simpler on the code end, we will write the angle in terms of the slope 
