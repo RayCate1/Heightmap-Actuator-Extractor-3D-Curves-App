@@ -124,16 +124,6 @@ if st.button("Process"):
     xs_in = xs_mm / 25.4
     A = len(xs_in)   # number of actuators
 
-    # Heights table (inches) 
-    rows = []
-    for i, xi in enumerate(xs_in, start=1):
-        row = {"Actuator": i, "X (in)": float(round(xi, 3))}
-        for j in range(nz):
-            v = H_in[i-1, j]
-            row[f"Z[{j}]"] = None if np.isnan(v) else float(round(v, 3))
-        rows.append(row)
-    df = pd.DataFrame(rows)
-
     # The equation relating theta θ (angle between x axis and curve), the specified thickness k, of the frp and the 
     # displacment d (disance the vertical actuators need to add onto the original cuve to compansate for bending), is 
     # d=((k/Cos(θ))-k)/2. From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
@@ -164,20 +154,6 @@ if st.button("Process"):
     # NumPy’s cos() expects radians, so convert degrees back to radians with np.radians()
     
     disp = k / np.cos(np.radians(angle_vs_horizontal))  # inches
-    
-    # Build and display table: Actuator, Slice, slope, angle vs horizontal, and displacement
-    df_rows = []
-    for i in range(A):
-        for j in range(nz):
-            df_rows.append({
-                "Actuator":            i+1,
-                "Slice":               j,
-                "slope (in/in)":       float(vy[i, j]),
-                "angle vs horiz (°)":   float(angle_vs_horizontal[i, j]),
-                "disp (in)":           float(disp[i, j])
-            })
-    angle_disp_df = pd.DataFrame(df_rows)
-
     disp_offset = disp / 2.0
     # Optional: if relative movement is desired, subtract first-slice value
     if zero_disp:
@@ -191,7 +167,40 @@ if st.button("Process"):
         top_curve = H_in + disp_offset
         bot_curve = H_in - disp_offset
     
-    # 7) Display new curves table
+
+
+
+
+
+
+    
+    #DISPLAY STUFF
+    #Parent data
+    rows = []
+    for i, xi in enumerate(xs_in, start=1):
+        row = {"Actuator": i, "X (in)": float(round(xi, 3))}
+        for j in range(nz):
+            v = H_in[i-1, j]
+            row[f"Z[{j}]"] = None if np.isnan(v) else float(round(v, 3))
+        rows.append(row)
+    df = pd.DataFrame(rows)
+    with st.expander("Parent Height Data (inches)", expanded=False):
+        st.dataframe(df, use_container_width=True)
+    #Basically a debug table
+    df_rows = []
+    for i in range(A):
+        for j in range(nz):
+            df_rows.append({
+                "Actuator":            i+1,
+                "Slice":               j,
+                "slope (in/in)":       float(vy[i, j]),
+                "angle vs horiz (°)":   float(angle_vs_horizontal[i, j]),
+                "disp (in)":           float(disp[i, j])
+            })
+    angle_disp_df = pd.DataFrame(df_rows)
+    with st.expander("Tangent Angle vs Horizontal & Displacement", expanded=False):
+        st.dataframe(angle_disp_df, use_container_width=True)
+    # Display new curves table
     df_rows = []
     for i in range(A):
         for kind, curve in (('top', top_curve), ('bottom', bot_curve)):
@@ -200,15 +209,6 @@ if st.button("Process"):
                 row[f"Z[{j}]"] = float(round(curve[i, j], 4))
             df_rows.append(row)
     new_curves_df = pd.DataFrame(df_rows)
-    
-    #DISPLAY STUFF
-    #Parent data
-    with st.expander("Parent Height Data (inches)", expanded=False):
-        st.dataframe(df, use_container_width=True)
-    #Basically a debug table
-    with st.expander("Tangent Angle vs Horizontal & Displacement", expanded=False):
-        st.dataframe(angle_disp_df, use_container_width=True)
-    # Display new curves table
     with st.expander("Displaced Curves Table", expanded=False):
         st.dataframe(new_curves_df, use_container_width=True)
     #3D viewers 
