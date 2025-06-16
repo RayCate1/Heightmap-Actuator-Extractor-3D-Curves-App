@@ -178,30 +178,28 @@ if st.button("Process"):
     for i in range(A):
         for j in range(nz):
             df_rows.append({
-                "Actuator":            i+1,
-                "Slice":               j,
-                "slope (in/in)":       float(vy[i, j]),
-                "angle vs horiz (°)":   float(angle_vs_horizontal[i, j]),
-                "disp_half (in)":      float(disp[i, j])
+                "Actuator":        i+1,
+                "Slice":           j,
+                "slope_x (in/in)": float(round(slopes_x[i, j], 4)),
+                "angle vs X (°)":   float(round(angle_vs_x[i, j], 2)),
+                "disp_half (in)":   float(round(disp_half[i, j], 4))
             })
-    disp_half_df = pd.DataFrame(df_rows)
-    with st.expander("Half-Displacement per Point", expanded=False):
-        st.dataframe(disp_half_df, use_container_width=True)
+    tangent_df = pd.DataFrame(df_rows)
+    with st.expander("Tangent Angle vs X & Half-Displacement", expanded=False):
+        st.dataframe(tangent_df, use_container_width=True)
     # Display new curves table
     # 6) Build and display table: Actuator, Slice, slope_x, angle_vs_x, half-displacement
     df_rows = []
     for i in range(A):
-        for j in range(nz):
-            df_rows.append({
-                "Actuator":      i+1,
-                "Slice":         j,
-                "slope_x (in/in)": float(round(slopes_x[i, j],     4)),
-                "angle vs X (°)": float(round(angle_vs_x[i, j],     2)),
-                "disp_half (in)":  float(round(disp_half[i, j],    4))
-            })
-    tangent_df = pd.DataFrame(df_rows)
-    with st.expander("Displaced Curves Table", expanded=False):
-        st.dataframe(tangent_df, use_container_width=True)
+        for kind, curve in (("top", top_curve), ("bottom", bot_curve)):
+            row = {"Actuator": i+1, "Type": kind}
+            for j in range(nz):
+                row[f"Z[{j}]"] = float(round(curve[i, j], 4))
+            df_rows.append(row)
+    new_curves_df = pd.DataFrame(df_rows)
+    st.subheader("Displaced Curves Table (Top & Bottom)")
+    with st.expander("Show Displaced Curves Data", expanded=False):
+        st.dataframe(new_curves_df, use_container_width=True)
     #3D viewers 
     # Parent Curves 3D Visualizer 
     with st.expander("Parent Actuator Curves in 3D", expanded=False):
