@@ -188,36 +188,7 @@ if st.button("Process"):
             df_rows.append(row)
     new_curves_df = pd.DataFrame(df_rows)
     
-    # 3D Viewer: plot top & bottom displaced curves
-    st.subheader("3D Viewer: Displaced Curves")
-    fig3d = go.Figure()
-    samp = np.arange(nz)
-    # Plot each actuator's top and bottom curves
-    for i in range(A):
-        top_z = H_in[i, :] + disp_offset[i, :]
-        bot_z = H_in[i, :] - disp_offset[i, :]
-        fig3d.add_trace(go.Scatter3d(
-            x=np.full(nz, i+1), y=samp, z=top_z,
-            mode='lines', name=f"Act {i+1} Top"
-        ))
-        fig3d.add_trace(go.Scatter3d(
-            x=np.full(nz, i+1), y=samp, z=bot_z,
-            mode='lines', name=f"Act {i+1} Bottom"
-        ))
-    # Layout adjustments
-    fig3d.update_layout(
-        scene=dict(
-            xaxis_title="Actuator #",
-            xaxis=dict(autorange="reversed"),
-            yaxis_title="Slice #",
-            zaxis_title="Height (in)"
-        ),
-        height=600, margin=dict(l=20, r=20, t=40, b=20)
-    )
-    st.plotly_chart(fig3d, use_container_width=True)
-
-
-    #Display stuff
+    #DISPLAY STUFF
     #Parent data
     with st.expander("Parent Height Data (inches)", expanded=False):
         st.dataframe(df, use_container_width=True)
@@ -255,4 +226,31 @@ if st.button("Process"):
             margin=dict(l=20, r=20, t=30, b=20)
         )
         st.plotly_chart(fig, use_container_width=True)
-    
+        
+    # 3D Viewer: plot top & bottom displaced curves
+    st.subheader("3D Viewer: Displaced Curves")
+    fig3d = go.Figure()
+    samp = np.arange(nz)
+    # Plot each actuator's top and bottom curves
+    for i in range(A):
+        top_z = H_in[i, :] + disp_offset[i, :]
+        bot_z = H_in[i, :] - disp_offset[i, :]
+        fig3d.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1), y=samp, z=top_z,
+            mode='lines', name=f"Act {i+1} Top"
+        ))
+        fig3d.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1), y=samp, z=bot_z,
+            mode='lines', name=f"Act {i+1} Bottom"
+        ))
+    # Layout adjustments
+    fig3d.update_layout(
+        scene=dict(
+            xaxis_title="Actuator #",
+            xaxis=dict(autorange="reversed"),
+            yaxis_title="Slice #",
+            zaxis_title="Height (in)"
+        ),
+        height=600, margin=dict(l=20, r=20, t=40, b=20)
+    )
+    st.plotly_chart(fig3d, use_container_width=True)
