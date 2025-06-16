@@ -177,14 +177,25 @@ if st.button("Process"):
     # Build new top/bottom curves using pointwise displacement + half thickness
     # New curves: H_top = H_in + (disp + comp_thickness/2), H_bot = H_in - (disp + comp_thickness/2)
     disp_offset = disp + comp_thickness/2.0  # total offset from parent
+    # Optional: if relative movement is desired, subtract first-slice value
+    if zero_disp:
+        # compute full top and bottom arrays
+        top_curve = H_in + disp_offset
+        bot_curve = H_in - disp_offset
+        # subtract each actuator's starting height
+        top_curve -= top_curve[:, 0][:, None]
+        bot_curve -= bot_curve[:, 0][:, None]
+    else:
+        top_curve = H_in + disp_offset
+        bot_curve = H_in - disp_offset
     
+    # 7) Display new curves table
     df_rows = []
     for i in range(A):
-        for kind, sign in (("top", 1), ("bottom", -1)):
+        for kind, curve in (('top', top_curve), ('bottom', bot_curve)):
             row = {"Actuator": i+1, "Type": kind}
             for j in range(nz):
-                z_val = H_in[i, j] + sign * disp_offset[i, j]
-                row[f"Z[{j}]"] = float(round(z_val, 4))
+                row[f"Z[{j}]"] = float(round(curve[i, j], 4))
             df_rows.append(row)
     new_curves_df = pd.DataFrame(df_rows)
     
