@@ -172,6 +172,7 @@ if st.button("Process"):
             df_rows.append({
                 "Actuator":            i+1,
                 "Slice":               j,
+                "k":                   float(round(k[i, j],      4)),
                 "slope (in/in)":       float(round(vy[i, j],      4)),
                 "angle vs horiz (°)":   float(round(angle_vs_horizontal[i, j], 2)),
                 "disp (in)":           float(round(disp[i, j],     4))
