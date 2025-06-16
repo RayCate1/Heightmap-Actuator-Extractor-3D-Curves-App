@@ -178,18 +178,18 @@ if st.button("Process"):
             })
     angle_disp_df = pd.DataFrame(df_rows)
 
-    CurveDisp = disp / 2.0
+    disp_offset = disp / 2.0
     # Optional: if relative movement is desired, subtract first-slice value
     if zero_disp:
         # compute full top and bottom arrays
-        top_curve = H_in + CurveDisp
-        bot_curve = H_in - CurveDisp
+        top_curve = H_in + disp_offset
+        bot_curve = H_in - disp_offset
         # subtract each actuator's starting height
         top_curve -= top_curve[:, 0][:, None]
         bot_curve -= bot_curve[:, 0][:, None]
     else:
-        top_curve = H_in + CurveDisp
-        bot_curve = H_in - CurveDisp
+        top_curve = H_in + disp_offset
+        bot_curve = H_in - disp_offset
     
     # 7) Display new curves table
     df_rows = []
