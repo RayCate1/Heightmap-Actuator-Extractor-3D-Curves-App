@@ -130,39 +130,7 @@ if st.button("Process"):
             row[f"Z[{j}]"] = None if np.isnan(v) else float(round(v, 3))
         rows.append(row)
     df = pd.DataFrame(rows)
-    with st.expander("Parent Height Data (inches)", expanded=False):
-        st.subheader("Parent Height Data (inches)")
-        st.dataframe(df, use_container_width=True)
 
-    # Parent Curves 3D Visualizer 
-    st.subheader("Parent Actuator Curves in 3D")
-
-    fig = go.Figure()
-    A    = len(xs_in)
-    samp = np.arange(nz)
-
-    for i in range(A):
-        fig.add_trace(go.Scatter3d(
-            x=np.full(nz, i+1),      # actuator number
-            y=samp,                   # slice index
-            z=H_in[i, :],             # height in inches
-            mode='lines',
-            line=dict(width=4),
-            name=f"Act {i+1}"
-        ))
-
-    fig.update_layout(
-        scene=dict(
-            xaxis_title="Actuator #",
-            xaxis=dict(autorange="reversed"),
-            yaxis_title="Slice #",
-            zaxis_title="Height (in)"
-        ),
-        height=700,
-        margin=dict(l=20, r=20, t=30, b=20)
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    
     # The equation relating theta θ (angle between x axis and curve), the specified thickness k, of the frp and the 
     # displacment d (disance the vertical actuators need to add onto the original cuve to compansate for bending), is 
     # d=((k/Cos(θ))-k)/2. From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
@@ -206,11 +174,6 @@ if st.button("Process"):
             })
     angle_disp_df = pd.DataFrame(df_rows)
     
-    # Display in Streamlit under expander
-    st.subheader("Tangent Angle vs Horizontal & Displacement")
-    with st.expander("Tangent Angle vs Horizontal & Displacement", expanded=False):
-        st.dataframe(angle_disp_df, use_container_width=True)
-    
     # Build new top/bottom curves using pointwise displacement + half thickness
     # New curves: H_top = H_in + (disp + comp_thickness/2), H_bot = H_in - (disp + comp_thickness/2)
     disp_offset = disp + comp_thickness/2.0  # total offset from parent
@@ -225,11 +188,7 @@ if st.button("Process"):
             df_rows.append(row)
     new_curves_df = pd.DataFrame(df_rows)
     
-    # Display new curves table
-    st.subheader("Displaced Curves (Top & Bottom)")
-    with st.expander("Displaced Curves Table", expanded=False):
-        st.dataframe(new_curves_df, use_container_width=True)
-    # 7) 3D Viewer: plot top & bottom displaced curves
+    # 3D Viewer: plot top & bottom displaced curves
     st.subheader("3D Viewer: Displaced Curves")
     fig3d = go.Figure()
     samp = np.arange(nz)
@@ -256,3 +215,44 @@ if st.button("Process"):
         height=600, margin=dict(l=20, r=20, t=40, b=20)
     )
     st.plotly_chart(fig3d, use_container_width=True)
+
+
+    #Display stuff
+    #Parent data
+    with st.expander("Parent Height Data (inches)", expanded=False):
+        st.dataframe(df, use_container_width=True)
+    #Basically a debug table
+    with st.expander("Tangent Angle vs Horizontal & Displacement", expanded=False):
+        st.dataframe(angle_disp_df, use_container_width=True)
+    # Display new curves table
+    with st.expander("Displaced Curves Table", expanded=False):
+        st.dataframe(new_curves_df, use_container_width=True)
+    #3D viewers 
+    # Parent Curves 3D Visualizer 
+    with st.expander("Parent Actuator Curves in 3D", expanded=False):
+        fig = go.Figure()
+        A    = len(xs_in)
+        samp = np.arange(nz)
+    
+        for i in range(A):
+            fig.add_trace(go.Scatter3d(
+                x=np.full(nz, i+1),      # actuator number
+                y=samp,                   # slice index
+                z=H_in[i, :],             # height in inches
+                mode='lines',
+                line=dict(width=4),
+                name=f"Act {i+1}"
+            ))
+    
+        fig.update_layout(
+            scene=dict(
+                xaxis_title="Actuator #",
+                xaxis=dict(autorange="reversed"),
+                yaxis_title="Slice #",
+                zaxis_title="Height (in)"
+            ),
+            height=700,
+            margin=dict(l=20, r=20, t=30, b=20)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    
