@@ -10,71 +10,77 @@ import matplotlib.pyplot as plt
 
 
 st.set_page_config(layout="wide")
-st.title("Heightmap Actuator Extractor & 3D Curves ahhh")
+st.title("Heightmap Actuator Extractor & 3D Curves ah")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in mm)", type=["stl", "obj"])
 
-# ── 3) MACHINE BOUNDS & ACTUATORS (Imperial) ─────────────────
+# ── 2) MACHINE BOUNDS & ACTUATORS (Imperial) ─────────────────
 st.markdown("### Machine Bounds & Actuators")
 b1, b2 = st.columns(2)
 with b1:
+    #Prompt user input
     width_val      = st.number_input("Bounds Width (ft)", value=6.0)
     height_val     = st.number_input("Bounds Height (ft)", value=4.0)
     comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
 with b2:
     num_actuators = st.number_input("Number of Actuators", min_value=1, value=10, step=1)
     nz            = st.slider("Z-Resolution (# slices)", 10, 10_000, 200)
-    # NEW: checkbox to shift zero
+    # Checkbox to shift zero
     shift_zero = st.checkbox(
         "Re-zero at mid-height (shift all heights down by half the bounding-box Y)", 
         value=False
     )
+    # Checkbox for relative movment
     zero_disp = st.checkbox(
         "Relative Movment (Actuators will start at zero, and be given heights relative to their start position)",
         value=False
     )
-# ── 4) LAUNCH PROCESS ────────────────────────────────────────
+# ── 3) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
+    # If no mesh -> Error message
     if not uploaded:
         st.error("Please upload a model file.")
         st.stop()
-
-    # 4.1 Convert bounds (ft→mm)
+        
+    # Convert bounds (ft→mm)
     bounds_width_mm  = width_val  * 304.8 
     bounds_height_mm = height_val * 304.8
     
-    # 4.2 Load mesh
+    # Load mesh (mm assumed)
     mesh = trimesh.load(BytesIO(uploaded.read()),
                         file_type=uploaded.name.split('.')[-1])
+    
+    # Error if mesh empty
     if mesh.is_empty:
         st.error("Mesh is empty.")
         st.stop()
-
-    # 4.3 X positions in mm
+        
+    # X positions in mm
     if num_actuators > 1:
         xs_mm = np.linspace(0, bounds_width_mm, num_actuators)
     else:
         xs_mm = np.array([0.0])
-    # 4.3b Convert actuator X positions to inches
+        
+    # Convert actuator X positions to inches
     xs_in = xs_mm / 25.4
-
-    # 4.4 Map into mesh coords
+    
+    # Map into mesh coords
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
     xs_mesh = xmin + (xs_mm / bounds_width_mm) * (xmax - xmin)
-
-    # ── **4.5 Z slices** ⬅️ moved **here**, before ray‐cast
+    
+    # Z slices
     zs = np.linspace(zmin, zmax, nz)
-
-    # 4.6 Nudge inwards
+    
+    # Nudge inwards for rays to hit edges properly
     if num_actuators > 1:
         span    = xmax - xmin
         spacing = span / (num_actuators - 1)
         eps     = spacing * 0.01
         xs_mesh[0]  = xmin + eps
         xs_mesh[-1] = xmax - eps
-
-    # 4.7 Ray-cast heights (mm)
+        
+    # Ray-cast heights (mm)
     H_mm = np.full((len(xs_mesh), nz), np.nan)
     for i, x0 in enumerate(xs_mesh):
         origins = np.column_stack([
@@ -86,13 +92,13 @@ if st.button("Process"):
         locs, idxs, _ = mesh.ray.intersects_location(origins, dirs, multiple_hits=False)
         if len(idxs):
             H_mm[i, idxs] = locs[:, 1]
-
+            
     # Apply the vertical shift if requested
     if shift_zero:
         half_y_span = (ymax - ymin) / 2.0
         H_mm = H_mm - half_y_span
         
-    # ── 4.8b Smooth/spline-interpolate any remaining NaNs ─────────
+    # Smooth/spline-interpolate any remaining NaNs 
     for i in range(len(xs_mesh)):
         row   = H_mm[i, :]           # the mm heights for actuator i
         idx   = np.arange(nz)        # sample indices
@@ -110,11 +116,12 @@ if st.button("Process"):
                 method='linear', limit_direction='both'
             ).values
         
-    # 4.9 Convert outputs to Imperial
+    # Convert outputs to Imperial
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
+    A = len(xs_in)   # number of actuators
 
-    # ── 4.11 Heights table (inches) ─────────────────────────
+    # Heights table (inches) 
     rows = []
     for i, xi in enumerate(xs_in, start=1):
         row = {"Actuator": i, "X (in)": float(round(xi, 3))}
@@ -123,238 +130,138 @@ if st.button("Process"):
             row[f"Z[{j}]"] = None if np.isnan(v) else float(round(v, 3))
         rows.append(row)
     df = pd.DataFrame(rows)
-    with st.expander("Parent Height Data (inches)", expanded=False):
-        st.subheader("Parent Height Data (inches)")
-        st.dataframe(df, use_container_width=True)
 
-    # Number of actuators & slices
-    A = len(xs_in)       # number of actuators
-    s = np.arange(nz)    # slice‐index parameter
+    # The equation relating theta θ (angle between x axis and curve), the specified thickness k, of the frp and the 
+    # displacment d (disance the vertical actuators need to add onto the original cuve to compansate for bending), is 
+    # d=((k/Cos(θ))-k)/2. From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
     
-    # Prepare arrays
-    vy = np.zeros_like(H_in)      # ∂H/∂s for each actuator & slice
-    vz = np.ones_like(H_in)       # ds/ds = 1 for each slice
-    vx = np.zeros_like(H_in)      # no x‐movement
+    # Compute physical slice spacing. 
+    #   - dz_mm: horizontal distance between consecutive Z-slices, in millimeters (mm)
+    #   - ds_in: horizontal distance per slice, in inches (in)
+    dz_mm = (zmax - zmin) / (nz - 1)   # mm per slice
+    ds_in = dz_mm / 25.4               # inches per slice
     
-    # Fit spline & compute derivative for each actuator
+    # Fit a cubic spline per actuator to obtain smooth derivative dH/ds
+    #    - s_phys: physical coordinate along horizontal (Z) axis in inches
+    #    - H_in[i, :] holds heights in inches
+    s_phys = np.arange(nz) * ds_in      # inches along Z-axis
+    vy = np.zeros_like(H_in)            # slope array (dimensionless: in/in)
     for i in range(A):
-        H_i    = H_in[i, :]                          # height vs. slice
-        spline = UnivariateSpline(s, H_i, k=3, s=0)  # exact cubic fit
-        dHds   = spline.derivative(n=1)(s)           # analytic derivative
-        vy[i, :] = dHds
+        # Fit exact cubic spline through (s_phys, H_in[i,:])
+        spline = UnivariateSpline(s_phys, H_in[i, :], k=3, s=0)
+        # Derivative dy/ds_phys at each slice (unitless)
+        vy[i, :] = spline.derivative(n=1)(s_phys)
     
-    # Now vx, vy, vz together are your velocity vectors at each point:
-    # velocity_vectors[i, j] = (vx[i,j], vy[i,j], vz[i,j])
-    velocity_vectors = np.stack([vx, vy, vz], axis=-1)  # shape (A, nz, 3)
+    # Compute tangent angle relative to horizontal axis (in degrees)
+    #    - tangent vector in (horizontal, vertical) plane = (Δs, ΔH) = (1, m)
+    #    - arctan2(vertical_component, horizontal_component) returns angle in radians; convert to degrees
+    angle_vs_horizontal = np.degrees(np.arctan2(vy, 1.0))  # degrees
     
-    # Example: print the first few velocities for actuator 1
-    for j in range(5):
-        v = velocity_vectors[0, j]
-        print(f"Actuator 1, slice {j}: v = {{vx={v[0]:.3f}, vy={v[1]:.3f}, vz={v[2]:.3f}}}")
-    # ── 4.19 Build & show velocity & angle from X ─────────────────
-    # Assume vx, vy, vz, speed, ux, uy, uz are already defined arrays
-    # ── 4.18 Compute & show velocity magnitude & direction ──────
-    # vx, vy, vz arrays of shape (A, nz)
-    vz = np.ones_like(vy)       # dz/ds = 1
-    vx = np.zeros_like(vy)      # no x‐movement
-
-    # magnitude (speed) at each point
-    speed = np.sqrt(vx**2 + vy**2 + vz**2)
-
-    # unit‐direction components
-    ux = vx / speed
-    uy = vy / speed
-    uz = vz / speed
-
-    # compute angle from X-axis (in degrees), clamped
-    ux_safe    = np.clip(ux, -1.0, 1.0)
-    angle_x    = np.degrees(np.arccos(ux_safe))   # shape (A, nz)
-
-    vel_rows = []
+    # Compute displacement using angle-based formula: d = (k/cos(θ) - k)/2
+    # NumPy’s cos() expects radians, so convert degrees back to radians with np.radians()
+    disp = (comp_thickness / np.cos(np.radians(angle_vs_horizontal)) - comp_thickness) / 2.0  # inches
+    
+    # Build and display table: Actuator, Slice, slope, angle vs horizontal, and displacement
+    df_rows = []
     for i in range(A):
         for j in range(nz):
-            vel_rows.append({
-                "Actuator":      i+1,
-                "Slice":         j,
-                "Speed":         float(round(speed[i,j],    4)),
-                "ux":            float(round(ux[i,j],       4)),
-                "uy":            float(round(uy[i,j],       4)),
-                "uz":            float(round(uz[i,j],       4)),
-                "Angle from X (°)": float(round(angle_x[i,j], 2)),
+            df_rows.append({
+                "Actuator":            i+1,
+                "Slice":               j,
+                "slope (in/in)":       float(round(vy[i, j],      4)),
+                "angle vs horiz (°)":   float(round(angle_vs_horizontal[i, j], 2)),
+                "disp (in)":           float(round(disp[i, j],     4))
             })
-    vel_df = pd.DataFrame(vel_rows)
-
-    with st.expander("Velocity & Direction Table", expanded=False):
-        st.subheader("Velocity Magnitude, Unit-Dir & Angle from X-Axis")
-        st.dataframe(vel_df, use_container_width=True)
-
-
-    # # ── 4.14 Build table of θ and displacement ────────────────
-    # angle_rows = []
-    # for i in range(A):
-    #     for j in range(nz):
-    #         angle_rows.append({
-    #             "Actuator":  i+1,
-    #             "Slice":     j,
-    #             "vy":        float(round(vy[i, j],    4)),
-    #             "vz":        float(round(vz[i, j],    4)),
-    #             "θ (deg)":   float(round(np.degrees(theta[i, j]), 2)),
-    #             "disp (in)": float(round(disp_angle[i, j],       4)),
-    #             "formula":   "d = t / cos(θ)"
-    #         })
-    # angle_df = pd.DataFrame(angle_rows)
-    # with st.expander("Angle-Based Displacement", expanded=False):
-    #     st.subheader("Angle-Based Displacement")
-
-    # # disp_angle[i,j] == thickness_in / cos(theta[i,j])
-    # disp_half  = disp_angle  / 2.0
-
-    # # build the top/bottom curves using half of t/cos(theta)
-    # top_curve  = H_in + disp_half   # shape (A, nz)
-    # bot_curve  = H_in - disp_half
-
-    # if zero_disp:
-    #     top_curve -= top_curve[:, 0][:, None]
-    #     bot_curve -= bot_curve[:, 0][:, None]
-
-    # disp_rows = []
-    # for i in range(A):
-    #     for kind, curve in (("top", top_curve), ("bottom", bot_curve)):
-    #         row = {"Actuator": i+1, "Type": kind}
-    #         for j in range(nz):
-    #             row[f"Z[{j}]"] = float(round(curve[i, j], 3))
-    #         disp_rows.append(row)
-    # disp_df = pd.DataFrame(disp_rows)
-    # with st.expander("Displaced Height Data (inches) — Top & Bottom Curves", expanded=False):
-    #     st.dataframe(disp_df, use_container_width=True)
-    # # ── 4.16 Angle‐Based Displacement per Point ──────────────────
-    # angle_disp_rows = []
-    # for i in range(A):
-    #     row = {"Actuator": i+1}
-    #     for j in range(nz):
-    #         v = disp_angle[i, j]
-    #         row[f"Z[{j}]"] = float(round(v, 4))
-    #     angle_disp_rows.append(row)
-    # angle_disp_df = pd.DataFrame(angle_disp_rows)
-
-    # with st.expander("Angle-Based Displacement Data", expanded=False):
-    #     st.subheader("Angle-Based Displacement (inches per slice)")
-    #     st.dataframe(angle_disp_df, use_container_width=True)
-    # # ── 4.15 Plot Displaced Curves in 3D ─────────────────────────
-    # st.subheader("Displaced Curves in 3D")
-    # fig = go.Figure()
-    # samp = np.arange(nz)
-
-    # for i in range(A):
-    #     fig.add_trace(go.Scatter3d(
-    #         x=np.full(nz, i+1),
-    #         y=samp,
-    #         z=top_curve[i, :],
-    #         mode='lines',
-    #         name=f"Act {i+1} Top"
-    #     ))
-    #     fig.add_trace(go.Scatter3d(
-    #         x=np.full(nz, i+1),
-    #         y=samp,
-    #         z=bot_curve[i, :],
-    #         mode='lines',
-    #         name=f"Act {i+1} Bottom"
-    #     ))
-
-    # fig.update_layout(
-    #     scene=dict(
-    #         xaxis_title="Actuator #",
-    #         xaxis=dict(autorange="reversed"),
-    #         yaxis_title="Sample #",
-    #         zaxis_title="Displaced Height (in)"
-    #     ),
-    #     height=600,
-    #     margin=dict(l=20, r=20, t=40, b=20)
-    # )
-    # st.plotly_chart(fig, use_container_width=True)
-
-    # # ── Visualize Curves + Normals ───────────────────────────────
-    # st.subheader("3D Curves with Surface Normals")
+    angle_disp_df = pd.DataFrame(df_rows)
     
-    # fig = go.Figure()
-    # samp = np.arange(nz)
-    # A    = len(xs_in)
+    # Build new top/bottom curves using pointwise displacement + half thickness
+    # New curves: H_top = H_in + (disp + comp_thickness/2), H_bot = H_in - (disp + comp_thickness/2)
+    disp_offset = disp + comp_thickness/2.0  # total offset from parent
+    # Optional: if relative movement is desired, subtract first-slice value
+    if zero_disp:
+        # compute full top and bottom arrays
+        top_curve = H_in + disp_offset
+        bot_curve = H_in - disp_offset
+        # subtract each actuator's starting height
+        top_curve -= top_curve[:, 0][:, None]
+        bot_curve -= bot_curve[:, 0][:, None]
+    else:
+        top_curve = H_in + disp_offset
+        bot_curve = H_in - disp_offset
     
-    # # 1) Plot each actuator’s curve
-    # for i in range(A):
-    #     fig.add_trace(go.Scatter3d(
-    #         x=np.full(nz, i+1),
-    #         y=samp,
-    #         z=H_in[i, :],
-    #         mode='lines',
-    #         line=dict(width=4),
-    #         name=f"Actuator {i+1}"
-    #     ))
+    # 7) Display new curves table
+    df_rows = []
+    for i in range(A):
+        for kind, curve in (('top', top_curve), ('bottom', bot_curve)):
+            row = {"Actuator": i+1, "Type": kind}
+            for j in range(nz):
+                row[f"Z[{j}]"] = float(round(curve[i, j], 4))
+            df_rows.append(row)
+    new_curves_df = pd.DataFrame(df_rows)
     
-    # # 2) Prepare flattened grids for normals
-    # Xg = np.repeat(np.arange(1, A+1)[:, None], nz, axis=1).ravel()
-    # Yg = np.repeat(samp[None, :],        A,        axis=0).ravel()
-    # Zg = H_in.ravel()
+    #DISPLAY STUFF
+    #Parent data
+    with st.expander("Parent Height Data (inches)", expanded=False):
+        st.dataframe(df, use_container_width=True)
+    #Basically a debug table
+    with st.expander("Tangent Angle vs Horizontal & Displacement", expanded=False):
+        st.dataframe(angle_disp_df, use_container_width=True)
+    # Display new curves table
+    with st.expander("Displaced Curves Table", expanded=False):
+        st.dataframe(new_curves_df, use_container_width=True)
+    #3D viewers 
+    # Parent Curves 3D Visualizer 
+    with st.expander("Parent Actuator Curves in 3D", expanded=False):
+        fig = go.Figure()
+        A    = len(xs_in)
+        samp = np.arange(nz)
     
-    # Ug = nx.ravel()       # x-component (should be zero)
-    # Vg = ny.ravel()       # y-component
-    # Wg = nz_norm.ravel()  # z-component
+        for i in range(A):
+            fig.add_trace(go.Scatter3d(
+                x=np.full(nz, i+1),      # actuator number
+                y=samp,                   # slice index
+                z=H_in[i, :],             # height in inches
+                mode='lines',
+                line=dict(width=4),
+                name=f"Act {i+1}"
+            ))
     
-    # # 3) Overlay normals as cones
-    # fig.add_trace(go.Cone(
-    #     x=Xg, y=Yg, z=Zg,
-    #     u=Ug, v=Vg, w=Wg,
-    #     anchor="tail",
-    #     sizemode="absolute",
-    #     sizeref=0.5,      # ← adjust to scale arrow lengths
-    #     showscale=False
-    # ))
-    
-    # fig.update_layout(
-    #     scene=dict(
-    #         xaxis=dict(title="Actuator #", autorange="reversed"),
-    #         yaxis=dict(title="Slice #"),
-    #         zaxis=dict(title="Height (in)")
-    #     ),
-    #     height=700,
-    #     margin=dict(l=20, r=20, t=30, b=20)
-    # )
-    
-    # st.plotly_chart(fig, use_container_width=True)
-
-    # ── 2) MACHINE PARAMETERS (Imperial) ────────────────────────
-    # st.markdown("### Machine Parameters (Imperial Defaults)")
-    # col1, col2, col3 = st.columns(3)
-    # with col1:
-    #     after_temp     = st.number_input("After-Dye Temperature (°F)", value=338.0)
-    #     dye_temp       = st.number_input("Dye Temperature (°F)", value=302.0)
-    #     wet_temp       = st.number_input("Wet Fiber Temperature (°F)", value=59.0)
-    # with col2:
-    #     pull_speed     = st.number_input("Pull Speed (in/min)", value=15.0, format="%.2f")
-    #     resin_ratio    = st.text_input("Resin:Fiber Ratio", value="1:1")
-    #     comp_force     = st.number_input("Compressive Force (psi)", value=15.0)
-    # with col3:
-    #     dye_thickness  = st.number_input("Dye Thickness (in)", value=0.0)
-    #
-    # params = {
-    #     "model_file":            uploaded.name,
-    #     "pull_speed_in_per_min": pull_speed,
-    #     "dye_temperature_F":     dye_temp,
-    #     "wet_fiber_temp_F":      wet_temp,
-    #     "after_dye_temp_F":      after_temp,
-    #     "resin_to_fiber_ratio":  resin_ratio,
-    #     "compressive_force_psi": comp_force,
-    #     "composite_thickness_in": comp_thickness,
-    #     "dye_thickness_in":      dye_thickness,
-    #     "bounds_width_ft":       width_val,
-    #     "bounds_height_ft":      height_val,
-    #     "number_of_actuators":   num_actuators,
-    #     "z_resolution":          nz
-    # }
-    # st.subheader("Machine Params JSON")
-    # st.download_button(
-    #     "Download params.json",
-    #     data=json.dumps(params, indent=2),
-    #     file_name="params.json",
-    #     mime="application/json"
-    # )
+        fig.update_layout(
+            scene=dict(
+                xaxis_title="Actuator #",
+                xaxis=dict(autorange="reversed"),
+                yaxis_title="Slice #",
+                zaxis_title="Height (in)"
+            ),
+            height=700,
+            margin=dict(l=20, r=20, t=30, b=20)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+    # 3D Viewer: plot top & bottom displaced curves
+    st.subheader("3D Viewer: Displaced Curves")
+    fig3d = go.Figure()
+    samp = np.arange(nz)
+    # Plot each actuator's top and bottom curves
+    for i in range(A):
+        top_z = H_in[i, :] + disp_offset[i, :]
+        bot_z = H_in[i, :] - disp_offset[i, :]
+        fig3d.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1), y=samp, z=top_z,
+            mode='lines', name=f"Act {i+1} Top"
+        ))
+        fig3d.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1), y=samp, z=bot_z,
+            mode='lines', name=f"Act {i+1} Bottom"
+        ))
+    # Layout adjustments
+    fig3d.update_layout(
+        scene=dict(
+            xaxis_title="Actuator #",
+            xaxis=dict(autorange="reversed"),
+            yaxis_title="Slice #",
+            zaxis_title="Height (in)"
+        ),
+        height=600, margin=dict(l=20, r=20, t=40, b=20)
+    )
+    st.plotly_chart(fig3d, use_container_width=True)
