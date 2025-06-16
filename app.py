@@ -178,7 +178,7 @@ if st.button("Process"):
     
     # Build new top/bottom curves using pointwise displacement + half thickness
     # New curves: H_top = H_in + (disp + comp_thickness/2), H_bot = H_in - (disp + comp_thickness/2)
-    disp_offset = disp + comp_thickness/2.0  # total offset from parent
+    disp_offset = heat_k + wheel_radius + disp + (comp_thickness/2.0)  # total offset from parent
     # Optional: if relative movement is desired, subtract first-slice value
     if zero_disp:
         # compute full top and bottom arrays
