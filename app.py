@@ -182,23 +182,21 @@ if st.button("Process"):
     s_phys = np.arange(nz) * ds_in      # inches along Z-axis
     vy = np.zeros_like(H_in)            # slope array (dimensionless: in/in)
     for i in range(A):
-        # Fit exact cubic spline: y = H_in vs s_phys (both in inches)
+        # Fit exact cubic spline through (s_phys, H_in[i,:])
         spline = UnivariateSpline(s_phys, H_in[i, :], k=3, s=0)
         # Derivative dy/ds_phys at each slice (unitless)
         vy[i, :] = spline.derivative(n=1)(s_phys)
     
     # 3) Compute tangent angle relative to horizontal axis (in degrees)
     #    - tangent vector in (horizontal, vertical) plane = (Δs, ΔH) = (1, m)
-    #    - arctan2 returns angle in radians; np.degrees converts to degrees
+    #    - arctan2(vertical_component, horizontal_component) returns radians; convert to degrees
     grid = vy  # using vy for clarity
     angle_vs_horizontal = np.degrees(np.arctan2(vy, 1.0))  # degrees
     
-    # 4) Compute per-point displacement (in inches)
-    #    formula: d = k*(sqrt(1 + m^2) - 1) / 2, where m = vy and k = thickness_inches
-    disp = comp_thickness * (np.sqrt(1 + vy**2) - 1) / 2.0  # inches
+    # 4) Compute displacement using angle-based formula: d = (k/cos(θ) - k)/2
+    disp = (comp_thickness / np.cos(np.radians(angle_vs_horizontal)) - comp_thickness) / 2.0  # inches
     
-    # 5) Build and display table: Actuator, Slice, slope (in/in),
-    #    angle vs horizontal (degrees), displacement (inches)
+    # 5) Build and display table: Actuator, Slice, slope, angle vs horizontal, and displacement
     df_rows = []
     for i in range(A):
         for j in range(nz):
