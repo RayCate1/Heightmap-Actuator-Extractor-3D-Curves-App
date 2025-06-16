@@ -28,7 +28,7 @@ with b1:
 with b2:
     comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
     wheel_radius   = st.number_input("Wheel Radius (in)", value=0.625)
-    heat_k         = st.number_input("Heating Element Thickness (in)", value=0.2)
+    heat_k         = st.number_input("Heating Element Thickness (in)", value=0.019685)
     # Checkbox to shift zero
     shift_zero = st.checkbox(
         "Re-zero at mid-height (shift all heights down by half the bounding-box Y)", 
