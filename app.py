@@ -208,10 +208,11 @@ if st.button("Process"):
     
     # Display in Streamlit under expander
     st.subheader("Tangent Angle vs Horizontal & Displacement")
-    st.dataframe(angle_disp_df, use_container_width=True)
+    with st.expander("Tangent Angle vs Horizontal & Displacement", expanded=False):
+        st.dataframe(new_curves_df, use_container_width=True)
     
-    # 6) Build new top/bottom curves using pointwise displacement + half thickness
-    #    New curves: H_top = H_in + (disp + comp_thickness/2), H_bot = H_in - (disp + comp_thickness/2)
+    # Build new top/bottom curves using pointwise displacement + half thickness
+    # New curves: H_top = H_in + (disp + comp_thickness/2), H_bot = H_in - (disp + comp_thickness/2)
     disp_offset = disp + comp_thickness/2.0  # total offset from parent
     
     df_rows = []
@@ -228,3 +229,30 @@ if st.button("Process"):
     st.subheader("Displaced Curves (Top & Bottom)")
     with st.expander("Displaced Curves Table", expanded=False):
         st.dataframe(new_curves_df, use_container_width=True)
+    # 7) 3D Viewer: plot top & bottom displaced curves
+    st.subheader("3D Viewer: Displaced Curves")
+    fig3d = go.Figure()
+    samp = np.arange(nz)
+    # Plot each actuator's top and bottom curves
+    for i in range(A):
+        top_z = H_in[i, :] + disp_offset[i, :]
+        bot_z = H_in[i, :] - disp_offset[i, :]
+        fig3d.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1), y=samp, z=top_z,
+            mode='lines', name=f"Act {i+1} Top"
+        ))
+        fig3d.add_trace(go.Scatter3d(
+            x=np.full(nz, i+1), y=samp, z=bot_z,
+            mode='lines', name=f"Act {i+1} Bottom"
+        ))
+    # Layout adjustments
+    fig3d.update_layout(
+        scene=dict(
+            xaxis_title="Actuator #",
+            xaxis=dict(autorange="reversed"),
+            yaxis_title="Slice #",
+            zaxis_title="Height (in)"
+        ),
+        height=600, margin=dict(l=20, r=20, t=40, b=20)
+    )
+    st.plotly_chart(fig3d, use_container_width=True)
