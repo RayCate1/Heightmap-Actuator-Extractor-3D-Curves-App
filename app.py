@@ -21,14 +21,14 @@ st.markdown("### Machine Bounds & Actuators")
 b1, b2 = st.columns(2)
 with b1:
     #Prompt user input
-    width_val      = st.number_input("Bounds Width (ft)", value=6.0)
-    height_val     = st.number_input("Bounds Height (ft)", value=4.0)
-    num_actuators  = st.number_input("Number of Actuators", min_value=1, value=10, step=1)
+    width_val      = st.number_input("Bounds Width (in)", value=62)
+    height_val     = st.number_input("Bounds Height (in)", value=14)
+    num_actuators  = st.number_input("Number of Actuator Pairs", min_value=1, value=7, step=1)
     nz             = st.number_input("Z-Resolution (# slices)", value=1000)
 with b2:
     comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
-    wheel_radius   = st.number_input("Wheel Radius (in)", value=1.0)
-    heat_k         = st.number_input("Heating Element Thickness (in)", value=1.0)
+    wheel_radius   = st.number_input("Wheel Radius (in)", value=0.625)
+    heat_k         = st.number_input("Heating Element Thickness (in)", value=0.2)
     # Checkbox to shift zero
     shift_zero = st.checkbox(
         "Re-zero at mid-height (shift all heights down by half the bounding-box Y)", 
@@ -47,8 +47,8 @@ if st.button("Process"):
         st.stop()
         
     # Convert bounds (ft→mm)
-    bounds_width_mm  = width_val  * 304.8 
-    bounds_height_mm = height_val * 304.8
+    bounds_width_mm  = width_val  * 25.4
+    bounds_height_mm = height_val * 25.4
     
     # Load mesh (mm assumed)
     mesh = trimesh.load(BytesIO(uploaded.read()),
