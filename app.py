@@ -1,4 +1,3 @@
-
 import streamlit as st
 import numpy as np
 import trimesh
@@ -158,23 +157,8 @@ if st.button("Process"):
     d_full = k / np.cos(np.radians(angle_vs_horizontal))  # total displacement d = k/Cos(θ)
     disp = d_full / 2.0                                     # half-displacement to apply (inches)
     
-    # 6) Build and display table: Actuator, Slice, slope, angle vs horizontal, and half-displacement
-    df_rows = []
-    for i in range(A):
-        for j in range(nz):
-            df_rows.append({
-                "Actuator":            i+1,
-                "Slice":               j,
-                "slope (in/in)":       float(round(vy[i, j],      4)),
-                "angle vs horiz (°)":   float(round(angle_vs_horizontal[i, j], 2)),
-                "disp_half (in)":      float(round(disp[i, j],     4))
-            })
-    disp_half_df = pd.DataFrame(df_rows)
     
-    st.subheader("Half-Displacement per Point")
-    st.dataframe(disp_half_df, use_container_width=True)
-    
-    # 7) Build new top/bottom curves using pointwise half-displacement
+    # 6) Build new top/bottom curves using pointwise half-displacement
     #    New curves: H_top = H_in + disp, H_bot = H_in - disp
     if zero_disp:
         # zero-relative: subtract each actuator's starting height afterward
@@ -213,12 +197,12 @@ if st.button("Process"):
             df_rows.append({
                 "Actuator":            i+1,
                 "Slice":               j,
-                "slope (in/in)":       float(vy[i, j]),
-                "angle vs horiz (°)":   float(angle_vs_horizontal[i, j]),
-                "disp (in)":           float(disp[i, j])
+                "slope (in/in)":       float(round(vy[i, j],      4)),
+                "angle vs horiz (°)":   float(round(angle_vs_horizontal[i, j], 2)),
+                "disp_half (in)":      float(round(disp[i, j],     4))
             })
-    angle_disp_df = pd.DataFrame(df_rows)
-    with st.expander("Tangent Angle vs Horizontal & Displacement", expanded=False):
+    disp_half_df = pd.DataFrame(df_rows)
+    with st.expander("Half-Displacement per Point", expanded=False):
         st.dataframe(angle_disp_df, use_container_width=True)
     # Display new curves table
     df_rows = []
