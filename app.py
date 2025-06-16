@@ -15,66 +15,72 @@ st.title("Heightmap Actuator Extractor & 3D Curves ahhh")
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in mm)", type=["stl", "obj"])
 
-# ── 3) MACHINE BOUNDS & ACTUATORS (Imperial) ─────────────────
+# ── 2) MACHINE BOUNDS & ACTUATORS (Imperial) ─────────────────
 st.markdown("### Machine Bounds & Actuators")
 b1, b2 = st.columns(2)
 with b1:
+    #Prompt user input
     width_val      = st.number_input("Bounds Width (ft)", value=6.0)
     height_val     = st.number_input("Bounds Height (ft)", value=4.0)
     comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
 with b2:
     num_actuators = st.number_input("Number of Actuators", min_value=1, value=10, step=1)
     nz            = st.slider("Z-Resolution (# slices)", 10, 10_000, 200)
-    # NEW: checkbox to shift zero
+    # Checkbox to shift zero
     shift_zero = st.checkbox(
         "Re-zero at mid-height (shift all heights down by half the bounding-box Y)", 
         value=False
     )
+    # Checkbox for relative movment
     zero_disp = st.checkbox(
         "Relative Movment (Actuators will start at zero, and be given heights relative to their start position)",
         value=False
     )
-# ── 4) LAUNCH PROCESS ────────────────────────────────────────
+# ── 3) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
+    # If no mesh -> Error message
     if not uploaded:
         st.error("Please upload a model file.")
         st.stop()
-
-    # 4.1 Convert bounds (ft→mm)
+        
+    # Convert bounds (ft→mm)
     bounds_width_mm  = width_val  * 304.8 
     bounds_height_mm = height_val * 304.8
     
-    # 4.2 Load mesh
+    # Load mesh (mm assumed)
     mesh = trimesh.load(BytesIO(uploaded.read()),
                         file_type=uploaded.name.split('.')[-1])
+    
+    # Error if mesh empty
     if mesh.is_empty:
         st.error("Mesh is empty.")
         st.stop()
-
-    # 4.3 X positions in mm
+        
+    # X positions in mm
     if num_actuators > 1:
         xs_mm = np.linspace(0, bounds_width_mm, num_actuators)
     else:
         xs_mm = np.array([0.0])
-    # 4.3b Convert actuator X positions to inches
+        
+    # Convert actuator X positions to inches
     xs_in = xs_mm / 25.4
-
-    # 4.4 Map into mesh coords
+    
+    # Map into mesh coords
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
     xs_mesh = xmin + (xs_mm / bounds_width_mm) * (xmax - xmin)
-
-    # ── **4.5 Z slices** ⬅️ moved **here**, before ray‐cast
+    
+    # Z slices
     zs = np.linspace(zmin, zmax, nz)
-
-    # 4.6 Nudge inwards
+    
+    # Nudge inwards for rays to hit edges properly
     if num_actuators > 1:
         span    = xmax - xmin
         spacing = span / (num_actuators - 1)
         eps     = spacing * 0.01
         xs_mesh[0]  = xmin + eps
         xs_mesh[-1] = xmax - eps
-
-    # 4.7 Ray-cast heights (mm)
+        
+    # Ray-cast heights (mm)
     H_mm = np.full((len(xs_mesh), nz), np.nan)
     for i, x0 in enumerate(xs_mesh):
         origins = np.column_stack([
@@ -86,13 +92,13 @@ if st.button("Process"):
         locs, idxs, _ = mesh.ray.intersects_location(origins, dirs, multiple_hits=False)
         if len(idxs):
             H_mm[i, idxs] = locs[:, 1]
-
+            
     # Apply the vertical shift if requested
     if shift_zero:
         half_y_span = (ymax - ymin) / 2.0
         H_mm = H_mm - half_y_span
         
-    # ── 4.8b Smooth/spline-interpolate any remaining NaNs ─────────
+    # Smooth/spline-interpolate any remaining NaNs 
     for i in range(len(xs_mesh)):
         row   = H_mm[i, :]           # the mm heights for actuator i
         idx   = np.arange(nz)        # sample indices
@@ -110,11 +116,11 @@ if st.button("Process"):
                 method='linear', limit_direction='both'
             ).values
         
-    # 4.9 Convert outputs to Imperial
+    # Convert outputs to Imperial
     H_in = H_mm / 25.4
     xs_in = xs_mm / 25.4
 
-    # ── 4.11 Heights table (inches) ─────────────────────────
+    # Heights table (inches) 
     rows = []
     for i, xi in enumerate(xs_in, start=1):
         row = {"Actuator": i, "X (in)": float(round(xi, 3))}
@@ -126,3 +132,47 @@ if st.button("Process"):
     with st.expander("Parent Height Data (inches)", expanded=False):
         st.subheader("Parent Height Data (inches)")
         st.dataframe(df, use_container_width=True)
+        
+    # The equation relating theta θ (angle between x axis and curve), the specified thickness k, of the frp and the 
+    # displacment d (disance the vertical actuators need to add onto the original cuve to compansate for bending), is 
+    # d=(k-kCos(θ))/(2Cos(θ)). To make things simpler on the code end, we will write the angle in terms of the slope 
+    # of the tangent line m or dy/dz. d=(k-kCos(arctan(m)))/(2Cos(arctan(m))). Using trig identities this simplifies to
+    # d=(1/2)k(Sqrt(1+m^2)-1). A beutiful formula that takes the desired thickness and spits out displacment compensation
+    # for every point! From there, you simply add plus or minus 1/2 thickness+d to the parent curves uwu. 
+
+    # Convert slice positions to physical Z (inches)
+    z_mm = np.linspace(zmin, zmax, nz)          # mesh z‐coords in mm
+    z_in = z_mm / 25.4                          # convert to inches
+    
+    # Compute m = dy/dz via spline fit in (z_in, H_in) space
+    A    = len(xs_in)
+    H_in = H_mm / 25.4                          # heights in inches
+    m    = np.zeros_like(H_in)
+    
+    for i in range(A):
+        # fit H_i(z)
+        spline  = UnivariateSpline(z_in, H_in[i, :], k=3, s=0)
+        m[i, :] = spline.derivative(n=1)(z_in)  # dy/dz at each z
+    
+    # (Alternatively, simple finite‐diff:)
+    # ds = z_in[1] - z_in[0]
+    # m = np.gradient(H_in, ds, axis=1)
+    
+    # 3) Compute displacement via formula:
+    k    = comp_thickness
+    disp = k * (np.sqrt(1 + m**2) - 1) / 2.0     # shape (A, nz)
+    
+    # 4) Build & show the table of slopes and displacements
+    rows = []
+    for i in range(A):
+        for j in range(nz):
+            rows.append({
+                "Actuator":  i+1,
+                "Z (inches)": float(round(z_in[j], 3)),
+                "slope dy/dz": float(round(m[i, j], 4)),
+                "disp (in)":   float(round(disp[i, j],4))
+            })
+    disp_df = pd.DataFrame(rows)
+    
+    st.subheader("Slope dy/dz & Displacement")
+    st.dataframe(disp_df, use_container_width=True)
