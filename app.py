@@ -209,7 +209,7 @@ if st.button("Process"):
     # Display in Streamlit under expander
     st.subheader("Tangent Angle vs Horizontal & Displacement")
     with st.expander("Tangent Angle vs Horizontal & Displacement", expanded=False):
-        st.dataframe(new_curves_df, use_container_width=True)
+        st.dataframe(angle_disp_df, use_container_width=True)
     
     # Build new top/bottom curves using pointwise displacement + half thickness
     # New curves: H_top = H_in + (disp + comp_thickness/2), H_bot = H_in - (disp + comp_thickness/2)
