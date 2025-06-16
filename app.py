@@ -163,7 +163,7 @@ if st.button("Process"):
     # Compute displacement using angle-based formula: d = (k/cos(θ) - k)/2
     # NumPy’s cos() expects radians, so convert degrees back to radians with np.radians()
     
-    disp = k / np.cos(np.radians(angle_vs_horizontal)  # inches
+    disp = k / np.cos(np.radians(angle_vs_horizontal))  # inches
     
     # Build and display table: Actuator, Slice, slope, angle vs horizontal, and displacement
     df_rows = []
