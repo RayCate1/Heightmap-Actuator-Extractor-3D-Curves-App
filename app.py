@@ -13,7 +13,7 @@ st.set_page_config(layout="wide")
 st.title("Heightmap Actuator Extractor & 3D Curves ahhh")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
-uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in mm)", type=["stl", "obj"])
+uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in inches)", type=["stl", "obj"])
 
 # ── 2) MACHINE BOUNDS & ACTUATORS (Imperial) ─────────────────
 st.markdown("### Machine Bounds & Actuators")
@@ -45,11 +45,12 @@ if st.button("Process"):
         st.error("Please upload a model file.")
         st.stop()
         
-    # Convert bounds (ft→mm)
-    bounds_width_mm  = width_val  * 25.4
-    bounds_height_mm = height_val * 25.4
+    # 2) Bounds & actuator X positions (inches)
+    #    width_val, height_val are now inches
+    bounds_width_in  = width_val
+    bounds_height_in = height_val
     
-    # Load mesh (mm assumed)
+    # Load mesh (inches assumed)
     mesh = trimesh.load(BytesIO(uploaded.read()),
                         file_type=uploaded.name.split('.')[-1])
     
@@ -58,23 +59,18 @@ if st.button("Process"):
         st.error("Mesh is empty.")
         st.stop()
         
-    # X positions in mm
+    # 4) Actuator X positions in mesh‐space
     if num_actuators > 1:
-        xs_mm = np.linspace(0, bounds_width_mm, num_actuators)
+        xs_in = np.linspace(0, bounds_width_in, num_actuators)
     else:
-        xs_mm = np.array([0.0])
-        
-    # Convert actuator X positions to inches
-    xs_in = xs_mm / 25.4
-    
-    # Map into mesh coords
+        xs_in = np.array([0.0])
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
-    xs_mesh = xmin + (xs_mm / bounds_width_mm) * (xmax - xmin)
+    xs_mesh = xmin + (xs_in / bounds_width_in) * (xmax - xmin)
     
-    # Z slices
+    # 5) Z‐slice positions (inches)
     zs = np.linspace(zmin, zmax, nz)
     
-    # Nudge inwards for rays to hit edges properly
+    # 6) Nudge at the edges
     if num_actuators > 1:
         span    = xmax - xmin
         spacing = span / (num_actuators - 1)
@@ -82,45 +78,34 @@ if st.button("Process"):
         xs_mesh[0]  = xmin + eps
         xs_mesh[-1] = xmax - eps
         
-    # Ray-cast heights (mm)
-    H_mm = np.full((len(xs_mesh), nz), np.nan)
+    # 7) Ray‐cast heights directly in inches
+    H_in = np.full((len(xs_mesh), nz), np.nan)
     for i, x0 in enumerate(xs_mesh):
         origins = np.column_stack([
             np.full(nz, x0),
             np.full(nz, ymax + (ymax - ymin) * 0.1),
             zs
         ])
-        dirs = np.tile([0.0, -1.0, 0.0], (nz, 1))
+        dirs = np.tile([0.0, -1.0, 0.0], (nz,1))
         locs, idxs, _ = mesh.ray.intersects_location(origins, dirs, multiple_hits=False)
         if len(idxs):
-            H_mm[i, idxs] = locs[:, 1]
-            
-    # Apply the vertical shift if requested
+            H_in[i, idxs] = locs[:,1]
+
+    # 8) Optional mid‐height re‐zero
     if shift_zero:
-        half_y_span = (ymax - ymin) / 2.0
-        H_mm = H_mm - half_y_span
+        H_in -= (ymax - ymin) / 2.0
         
-    # Smooth/spline-interpolate any remaining NaNs 
+    # 9) Smooth/spline‐interpolate any remaining NaNs
     for i in range(len(xs_mesh)):
-        row   = H_mm[i, :]           # the mm heights for actuator i
-        idx   = np.arange(nz)        # sample indices
-        valid = ~np.isnan(row)       # mask of good points
-    
-        # Only fit if we have at least 4 non-NaNs (for a cubic spline)
+        row   = H_in[i, :]
+        idx   = np.arange(nz)
+        valid = ~np.isnan(row)
         if valid.sum() >= 4:
-            # fit a cubic spline through the known points
-            spline = UnivariateSpline(idx[valid], row[valid], k=3, s=0)
-            # evaluate it at every slice index (fills NaNs smoothly)
-            H_mm[i, :] = spline(idx)
+            spline    = UnivariateSpline(idx[valid], row[valid], k=3, s=0)
+            H_in[i,:] = spline(idx)
         else:
-            # fallback: linear/constant fill if too few points
-            H_mm[i, :] = pd.Series(row).interpolate(
-                method='linear', limit_direction='both'
-            ).values
-        
-    # Convert outputs to Imperial
-    H_in = H_mm / 25.4
-    xs_in = xs_mm / 25.4
+            H_in[i,:] = pd.Series(row).interpolate(method='linear', limit_direction='both').values
+            
     A = len(xs_in)   # number of actuators
     
     # The equation relating theta θ (angle between x axis and curve), the distance between axles k, of the frp and the 
@@ -128,10 +113,8 @@ if st.button("Process"):
     # d=k/Cos(θ). From there, you simply add plus or minus 1/2 d to the parent curves. 
     
     # 1) Compute physical slice spacing
-    #   - dz_mm: horizontal (Z-axis) distance between consecutive slices, in millimeters (mm)
     #   - ds_in: horizontal distance per slice, in inches (in)
-    dz_mm = (zmax - zmin) / (nz - 1)   # mm per slice
-    ds_in = dz_mm / 25.4               # inches per slice
+    dz_in = (zmax - zmin) / (nz - 1)               # inches per slice
     
     # 2) Fit a cubic spline per actuator to obtain smooth derivative dH/ds
     #    - s_phys: physical coordinate along horizontal (Z) axis in inches
