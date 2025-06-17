@@ -1,3 +1,15 @@
+# PPPPPP  RRRRRR  OOOOOO  JJJJJJ  EEEEEE  CCCCCC  TTTTTT
+# P    P  R    R  O    O      JJ  E       C         TT    
+# PPPPPP  RRRRRR  O    O      JJ  EEE     C         TT    
+# P       R   R   O    O  J   JJ  E       C         TT    
+# P       R    R  OOOOOO   JJJJ   EEEEEE  CCCCCC    TT    
+
+# FFFFFF  RRRRRR  EEEEEE  DDDDD 
+# F       R    R  E       D    D
+# FFFF    RRRRRR  EEE     D    D
+# F       R   R   E       D    D
+# F       R    R  EEEEEE  DDDDD 
+
 import streamlit as st
 import numpy as np
 import trimesh
@@ -10,7 +22,7 @@ import matplotlib.pyplot as plt
 
 
 st.set_page_config(layout="wide")
-st.title("Heightmap Actuator Extractor & 3D Curves ah")
+st.title("Heightmap Actuator Extractor & 3D Curves")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in inches)", type=["stl", "obj"])
@@ -164,14 +176,6 @@ if st.button("Process"):
         top_curve = H_in + disp_half
         bot_curve = H_in - disp_half
 
-    
-
-
-
-
-
-
-    
     #DISPLAY STUFF for streamlit app
     #Parent data
     rows = []
