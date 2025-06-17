@@ -38,6 +38,11 @@ with b2:
         "Relative Movment (Actuators will start at zero, and be given heights relative to their start position)",
         value=False
     )
+    # Checkbox for millimeter units (not currently implemented)
+    #     mm_units = st.checkbox(
+    #     "millimeter units (not operational)",
+    #     value=False
+    # )
 # ── 3) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
     # If no mesh -> Error message
@@ -64,13 +69,15 @@ if st.button("Process"):
         xs_in = np.linspace(0, bounds_width_in, num_actuators)
     else:
         xs_in = np.array([0.0])
+        
+    #Construct bounding box
     (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
     xs_mesh = xmin + (xs_in / bounds_width_in) * (xmax - xmin)
     
     # 5) Z‐slice positions (inches)
     zs = np.linspace(zmin, zmax, nz)
     
-    # 6) Nudge at the edges
+    # 6) Nudge at the edges. Before, the rays where not hitting the edges of the mesh so we are scooting the edge slices in here.
     if num_actuators > 1:
         span    = xmax - xmin
         spacing = span / (num_actuators - 1)
@@ -78,7 +85,9 @@ if st.button("Process"):
         xs_mesh[0]  = xmin + eps
         xs_mesh[-1] = xmax - eps
         
-    # 7) Ray‐cast heights directly in inches
+    # 7) Ray‐cast heights directly in inches.For each actuator position, you “fire” a line of sight straight down from just above the mesh through each Z-slice, detect where it first strikes the surface, and record that Y (height) in your 2D array. Wherever no hit occurs, the entry stays NaN, so you can fill or interpolate later.
+
+This gives you a full height map in inches, organized as H_in[actuator_index, slice_index]
     H_in = np.full((len(xs_mesh), nz), np.nan)
     for i, x0 in enumerate(xs_mesh):
         origins = np.column_stack([
@@ -105,23 +114,20 @@ if st.button("Process"):
             H_in[i,:] = spline(idx)
         else:
             H_in[i,:] = pd.Series(row).interpolate(method='linear', limit_direction='both').values
-            
-    A = len(xs_in)   # number of actuators
     
-    # The equation relating theta θ (angle between x axis and curve), the distance between axles k, of the frp and the 
-    # displacment d (disance the vertical actuators need to add onto the original cuve to compansate for bending), is 
-    # d=k/Cos(θ). From there, you simply add plus or minus 1/2 d to the parent curves. 
+    # The equation relating theta θ (angle between x axis and curve), the distance between axles k, of the frp and the displacment d    (disance the vertical actuators need to add onto the original cuve to compansate for bending), is d=k/Cos(θ). From there, you simply add plus or minus 1/2 d to the parent curves. 
     
     # 1) Compute physical actuator spacing along X-axis (inches)
     # xs_in: actuator X positions in inches (already defined)
-    s_act = xs_in                                     # shape (A,)
+    A = len(xs_in)   # number of actuators
+    s_act = xs_in    # shape (A,)
     
     # 2) Fit a cubic spline per Z-slice to obtain smooth derivative dH/dx
     #    - For each slice j, H_in[:, j] gives heights across actuators at that Z.
     #    - slopes_x[i,j] = ∂H/∂x at actuator i for slice j.
-    slopes_x = np.zeros_like(H_in)                     # shape (A, nz)
+    slopes_x = np.zeros_like(H_in)  # shape (A, nz)
     for j in range(nz):
-        H_slice   = H_in[:, j]                        # heights at slice j across A actuators
+        H_slice   = H_in[:, j]      # heights at slice j across A actuators
         # If enough points, fit a cubic spline; else use finite differences
         if A >= 4:
             spline      = UnivariateSpline(s_act, H_slice, k=3, s=0)
@@ -139,7 +145,7 @@ if st.button("Process"):
     
     # 5) Compute displacement: full d = k / cos(θ), then half-displacement
     d_full    = eff_span / np.cos(np.radians(angle_vs_x))  # total displacement (inches)
-    disp_half = d_full / 2.0                                # half-displacement to apply (inches)
+    disp_half = d_full / 2.0                               # half-displacement to apply (inches)
     
     # 6) Build new top/bottom curves using pointwise half-displacement
     #    New curves: H_top = H_in + disp_half, H_bot = H_in - disp_half
@@ -161,7 +167,7 @@ if st.button("Process"):
 
 
     
-    #DISPLAY STUFF
+    #DISPLAY STUFF for streamlit app
     #Parent data
     rows = []
     for i, xi in enumerate(xs_in, start=1):
@@ -187,6 +193,7 @@ if st.button("Process"):
     tangent_df = pd.DataFrame(df_rows)
     with st.expander("Tangent Angle vs X & Half-Displacement", expanded=False):
         st.dataframe(tangent_df, use_container_width=True)
+        
     # Display new curves table
     # 6) Build and display table: Actuator, Slice, slope_x, angle_vs_x, half-displacement
     df_rows = []
@@ -199,6 +206,7 @@ if st.button("Process"):
     new_curves_df = pd.DataFrame(df_rows)
     with st.expander("Displaced Curves Table (Top & Bottom)", expanded=False):
         st.dataframe(new_curves_df, use_container_width=True)
+        
     #3D viewers 
     # Parent Curves 3D Visualizer 
     with st.expander("Parent Actuator Curves in 3D", expanded=False):
