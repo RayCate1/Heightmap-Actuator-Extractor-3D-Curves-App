@@ -43,6 +43,11 @@ with b2:
     #     "millimeter units (not operational)",
     #     value=False
     # )
+    # Checkbox for intermediate smoothing (trade acuracy to the file to smooth bumps out) (not currently implemented)
+    #     mm_units = st.checkbox(
+    #     "intermediate smoothing (not operational)",
+    #     value=False
+    # )
 # ── 3) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
     # If no mesh -> Error message
@@ -85,9 +90,7 @@ if st.button("Process"):
         xs_mesh[0]  = xmin + eps
         xs_mesh[-1] = xmax - eps
         
-    # 7) Ray‐cast heights directly in inches.For each actuator position, you “fire” a line of sight straight down from just above the mesh through each Z-slice, detect where it first strikes the surface, and record that Y (height) in your 2D array. Wherever no hit occurs, the entry stays NaN, so you can fill or interpolate later.
-
-This gives you a full height map in inches, organized as H_in[actuator_index, slice_index]
+    # 7) Ray‐cast heights directly in inches.For each actuator position, you “fire” a line of sight straight down from just above the mesh through each Z-slice, detect where it first strikes the surface, and record that Y (height) in your 2D array. Wherever no hit occurs, the entry stays NaN, so you can fill or interpolate later.This gives you a full height map in inches, organized as H_in[actuator_index, slice_index]
     H_in = np.full((len(xs_mesh), nz), np.nan)
     for i, x0 in enumerate(xs_mesh):
         origins = np.column_stack([
@@ -99,11 +102,10 @@ This gives you a full height map in inches, organized as H_in[actuator_index, sl
         locs, idxs, _ = mesh.ray.intersects_location(origins, dirs, multiple_hits=False)
         if len(idxs):
             H_in[i, idxs] = locs[:,1]
-
+            
     # 8) Optional mid‐height re‐zero
     if shift_zero:
         H_in -= (ymax - ymin) / 2.0
-        
     # 9) Smooth/spline‐interpolate any remaining NaNs
     for i in range(len(xs_mesh)):
         row   = H_in[i, :]
@@ -114,6 +116,9 @@ This gives you a full height map in inches, organized as H_in[actuator_index, sl
             H_in[i,:] = spline(idx)
         else:
             H_in[i,:] = pd.Series(row).interpolate(method='linear', limit_direction='both').values
+
+    #Right now we have data that is completely filled in but is still a bit choppy because the mesh used is not a B spline. we will add an opion at the top foe extra smoothing. The mesh a set of triangles doing its best to represent a B spline. What we need to do to fix this is spline‐interpolate all of the data and then sample these splines at the sample rate.
+
     
     # The equation relating theta θ (angle between x axis and curve), the distance between axles k, of the frp and the displacment d    (disance the vertical actuators need to add onto the original cuve to compansate for bending), is d=k/Cos(θ). From there, you simply add plus or minus 1/2 d to the parent curves. 
     
