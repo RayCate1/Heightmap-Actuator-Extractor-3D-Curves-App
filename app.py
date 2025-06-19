@@ -27,8 +27,6 @@ st.title("Heightmap Actuator Extractor & 3D Curves")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in inches)", type=["stl", "obj"])
-scan_file = st.file_uploader("Upload Scan Point Cloud", type=["ply","pcd","xyz"])
-mesh_file = st.file_uploader("Upload CAD Mesh (STL/OBJ/PLY)", type=["stl","obj","ply"])
 # ── 2) MACHINE BOUNDS & ACTUATORS (Imperial) ─────────────────
 st.markdown("### Machine Bounds & Actuators")
 b1, b2 = st.columns(2)
@@ -181,107 +179,6 @@ if st.button("Process"):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-    st.title("📐 Scan vs. CAD Alignment Viewer (Trimesh ICP)")
-    
-        # load your scan and mesh
-    scan_data = trimesh.load(scan_path)
-    pts_scan = np.asarray(scan_data.vertices) \
-        if hasattr(scan_data, 'vertices') else np.loadtxt(scan_path)
-    
-    mesh = trimesh.load(mesh_path)
-    pts_mesh, _ = trimesh.sample.sample_surface(mesh, 500_000)
-    
-    # run ICP
-    matrix, _ = trimesh.registration.icp(
-        pts_scan, pts_mesh,
-        max_iterations=50,
-        tolerance=1e-5
-    )
-    
-    # apply the transformation
-    ones = np.ones((pts_scan.shape[0],1))
-    pts_hom = np.hstack([pts_scan, ones])
-    pts_aligned = (matrix @ pts_hom.T).T[:,:3]
-    
-    # Prepare data for PyDeck
-    df_scan = pd.DataFrame(pts_aligned, columns=["x","y","z"])
-    vertices = np.asarray(mesh.vertices)
-    faces    = np.asarray(mesh.faces)
-    
-    # Deck.gl coordinate system enum:
-    CARTESIAN = 3
-    
-    # Mesh layer with Cartesian coordinates
-    mesh_layer = pdk.Layer(
-        "MeshLayer",
-        data=[{"positions": vertices.tolist(), "indices": faces.tolist()}],
-        get_color=[180, 100, 200],
-        opacity=0.4,
-        wireframe=True,
-        coordinate_system=CARTESIAN
-    )
-    
-    # Scan points layer with Cartesian coordinates
-    scatter_layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=df,  # your DataFrame of scan points
-        get_position=["x", "y", "z"],
-        get_color=[255, 0, 0],
-        get_radius=0.002,
-        coordinate_system=CARTESIAN
-    )
-    
-    center = vertices.mean(axis=0)
-    view_state = pdk.ViewState(
-        latitude=center[1],
-        longitude=center[0],
-        zoom=0,
-        pitch=45,
-        bearing=0
-     )
-    
-    st.pydeck_chart(pdk.Deck(
-        map_style=None,
-        initial_view_state=view_state,
-        layers=[mesh_layer, scatter_layer]
-    ))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     
     #DISPLAY STUFF for streamlit app
     #Parent data
@@ -376,3 +273,90 @@ if st.button("Process"):
     st.plotly_chart(fig3d, use_container_width=True)
 
 st.subheader("Rcate3@vols.utk.edu")
+
+#Process mesh button inside of Process button after all the animation and machine outputs are made.
+    scan_file = st.file_uploader("Upload Scan Point Cloud", type=["ply","pcd","xyz"])
+    if st.button("Process"):
+    # If no mesh -> Error message
+        if not uploaded:
+            st.error("Please upload a mesh file.")
+            st.stop()
+    st.title("📐 Scan vs. CAD Alignment Viewer (Trimesh ICP)")
+    
+        # load your scan and mesh
+    scan_data = trimesh.load(scan_path)
+    pts_scan = np.asarray(scan_data.vertices) \
+        if hasattr(scan_data, 'vertices') else np.loadtxt(scan_path)
+    
+    mesh = trimesh.load(mesh_path)
+    pts_mesh, _ = trimesh.sample.sample_surface(mesh, 500_000)
+    
+    # run ICP
+    matrix, _ = trimesh.registration.icp(
+        pts_scan, pts_mesh,
+        max_iterations=50,
+        tolerance=1e-5
+    )
+    
+    # apply the transformation
+    ones = np.ones((pts_scan.shape[0],1))
+    pts_hom = np.hstack([pts_scan, ones])
+    pts_aligned = (matrix @ pts_hom.T).T[:,:3]
+    
+    # Prepare data for PyDeck
+    df_scan = pd.DataFrame(pts_aligned, columns=["x","y","z"])
+    vertices = np.asarray(mesh.vertices)
+    faces    = np.asarray(mesh.faces)
+    
+    # Deck.gl coordinate system enum:
+    CARTESIAN = 3
+    
+    # Mesh layer with Cartesian coordinates
+    mesh_layer = pdk.Layer(
+        "MeshLayer",
+        data=[{"positions": vertices.tolist(), "indices": faces.tolist()}],
+        get_color=[180, 100, 200],
+        opacity=0.4,
+        wireframe=True,
+        coordinate_system=CARTESIAN
+    )
+    
+    # Scan points layer with Cartesian coordinates
+    scatter_layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=df,  # your DataFrame of scan points
+        get_position=["x", "y", "z"],
+        get_color=[255, 0, 0],
+        get_radius=0.002,
+        coordinate_system=CARTESIAN
+    )
+    
+    center = vertices.mean(axis=0)
+    view_state = pdk.ViewState(
+        latitude=center[1],
+        longitude=center[0],
+        zoom=0,
+        pitch=45,
+        bearing=0
+     )
+    
+    st.pydeck_chart(pdk.Deck(
+        map_style=None,
+        initial_view_state=view_state,
+        layers=[mesh_layer, scatter_layer]
+    ))
+
+
+
+
+
+#u3u
+
+
+
+
+
+
+
+
+
