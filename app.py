@@ -19,7 +19,10 @@ import plotly.graph_objects as go
 from io import BytesIO
 from scipy.interpolate import UnivariateSpline
 import matplotlib.pyplot as plt
-
+import open3d as o3d
+import pydeck as pdk
+from pydeck.types import CoordinateSystem
+import tempfile
 
 st.set_page_config(layout="wide")
 st.title("Heightmap Actuator Extractor & 3D Curves")
@@ -176,6 +179,157 @@ if st.button("Process"):
         top_curve = H_in + disp_half
         bot_curve = H_in - disp_half
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+st.title("📐 Scan vs. CAD Alignment Viewer")
+
+# Upload widgets for scan point cloud and CAD mesh
+scan_file = st.file_uploader("Upload Scan Point Cloud", type=["ply","pcd","xyz"])
+mesh_file = st.file_uploader("Upload CAD Mesh (STL)", type=["stl","obj","ply"])
+
+if scan_file and mesh_file:
+    # Save uploads to temporary files for Open3D to read
+    with tempfile.NamedTemporaryFile(delete=False, suffix=scan_file.name) as tmp_scan:
+        tmp_scan.write(scan_file.getbuffer())
+        scan_path = tmp_scan.name
+    with tempfile.NamedTemporaryFile(delete=False, suffix=mesh_file.name) as tmp_mesh:
+        tmp_mesh.write(mesh_file.getbuffer())
+        mesh_path = tmp_mesh.name
+
+    @st.cache_data
+    def load_and_align(scan_path, mesh_path):
+        # Load scan and mesh
+        scan = o3d.io.read_point_cloud(scan_path)
+        mesh = o3d.io.read_triangle_mesh(mesh_path)
+        # Sample mesh to a point cloud
+        pcd_mesh = mesh.sample_points_uniformly(number_of_points=500_000)
+
+        # Preprocessing: downsample, estimate normals, compute FPFH features
+        def preprocess(pcd, voxel_size):
+            pcd_down = pcd.voxel_down_sample(voxel_size)
+            pcd_down.estimate_normals(
+                o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size*2, max_nn=30)
+            )
+            fpfh = o3d.pipelines.registration.compute_fpfh_feature(
+                pcd_down,
+                o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size*5, max_nn=100)
+            )
+            return pcd_down, fpfh
+
+        voxel_size = 0.005
+        scan_down, fpfh_scan = preprocess(scan, voxel_size)
+        mesh_down, fpfh_mesh = preprocess(pcd_mesh, voxel_size)
+
+        # Global alignment with RANSAC
+        distance_threshold = voxel_size * 1.5
+        result_ransac = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
+            scan_down, mesh_down, fpfh_scan, fpfh_mesh, True,
+            distance_threshold,
+            o3d.pipelines.registration.TransformationEstimationPointToPoint(False),
+            4,
+            [
+                o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(0.9),
+                o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(distance_threshold)
+            ],
+            o3d.pipelines.registration.RANSACConvergenceCriteria(4000000, 500)
+        )
+
+        # Refinement with point-to-plane ICP
+        icp_thresh = voxel_size * 0.5
+        result_icp = o3d.pipelines.registration.registration_icp(
+            scan, pcd_mesh,
+            icp_thresh,
+            result_ransac.transformation,
+            o3d.pipelines.registration.TransformationEstimationPointToPlane()
+        )
+        scan.transform(result_icp.transformation)
+        return scan, mesh
+
+    # Run alignment once and cache results
+    scan, mesh = load_and_align(scan_path, mesh_path)
+
+    # Prepare scan points for visualization
+    pts = np.asarray(scan.points)
+    df = pd.DataFrame(pts, columns=["x","y","z"])
+
+    # Prepare mesh geometry
+    vertices = np.asarray(mesh.vertices)
+    faces = np.asarray(mesh.triangles)
+
+    # Define layers for PyDeck
+    mesh_layer = pdk.Layer(
+        "MeshLayer",
+        data=[{"positions": vertices.tolist(), "indices": faces.tolist()}],
+        get_color=[180, 100, 200],
+        opacity=0.4,
+        wireframe=True,
+        coordinate_system=CoordinateSystem.CARTESIAN
+    )
+    scatter_layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=df,
+        get_position=["x","y","z"],
+        get_color=[255, 0, 0],
+        get_radius=0.002,
+        coordinate_system=CoordinateSystem.CARTESIAN
+    )
+
+    # Center view on CAD mesh
+    center = vertices.mean(axis=0)
+    view_state = pdk.ViewState(
+        latitude=center[1],
+        longitude=center[0],
+        zoom=0,
+        pitch=45,
+        bearing=0
+    )
+
+    # Render with Streamlit
+    st.pydeck_chart(pdk.Deck(
+        map_style=None,
+        initial_view_state=view_state,
+        layers=[mesh_layer, scatter_layer]
+    ))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     #DISPLAY STUFF for streamlit app
     #Parent data
     rows = []
