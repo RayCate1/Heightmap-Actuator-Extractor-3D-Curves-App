@@ -279,7 +279,7 @@ if st.button("Process"):
     
 
 #Process mesh button inside of Process button after all the animation and machine outputs are made.
-    scan_file = st.file_uploader("Upload Scan Point Cloud", type=["ply","pcd","xyz"])
+    scan_file = st.file_uploader("Upload Scan Point Cloud or Mesh (ply, pcd, xyz, stl, obj)", type=["ply","pcd","xyz","stl","obj"])
     if st.button("Process Scan"):
     # If no mesh -> Error message
         if not uploaded:
