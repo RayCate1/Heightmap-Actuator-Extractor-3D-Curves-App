@@ -282,9 +282,10 @@ if st.button("Process"):
     scan_file = st.file_uploader("Upload Scan Point Cloud or Mesh (ply, pcd, xyz, stl, obj)", type=["ply","pcd","xyz","stl","obj"])
     if st.button("Process Scan"):
     # If no mesh -> Error message
-        if not uploaded:
-            st.error("Please upload a mesh file.")
+        if not scan_file:
+            st.error("Please upload a file.")
             st.stop()
+            
         st.title("📐 Scan vs. CAD Alignment Viewer (Trimesh ICP)")
         
             # load your scan and mesh
