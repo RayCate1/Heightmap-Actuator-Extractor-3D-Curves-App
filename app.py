@@ -194,75 +194,75 @@ if st.button("Process"):
 
 
 
-st.title("📐 Scan vs. CAD Alignment Viewer (Trimesh ICP)")
-
-# Upload widgets
-scan_file = st.file_uploader("Upload Scan Point Cloud", type=["ply","pcd","xyz"])
-mesh_file = st.file_uploader("Upload CAD Mesh (STL/OBJ/PLY)", type=["stl","obj","ply"])
-
-if scan_file and mesh_file:
-    # Save temporary files
-    with tempfile.NamedTemporaryFile(delete=False, suffix=scan_file.name) as tmp:
-        tmp.write(scan_file.getbuffer())
-        scan_path = tmp.name
-    with tempfile.NamedTemporaryFile(delete=False, suffix=mesh_file.name) as tmp:
-        tmp.write(mesh_file.getbuffer())
-        mesh_path = tmp.name
-
-    # Load scan and mesh
-    scan_data = trimesh.load(scan_path)
-    pts_scan = np.asarray(scan_data.vertices) if hasattr(scan_data, 'vertices') else np.loadtxt(scan_path)
-    mesh = trimesh.load(mesh_path)
-    pts_mesh, _ = trimesh.sample.sample_surface(mesh, 500000)
-
-    # ICP registration
-    matrix, _ = trimesh.registration.icp(
-        pts_scan,
-        pts_mesh,
-        max_iterations=50,
-        tolerance=1e-5
-    )
-    # Apply transform
-    ones = np.ones((pts_scan.shape[0],1))
-    pts_hom = np.hstack([pts_scan, ones])
-    pts_aligned = (matrix @ pts_hom.T).T[:,:3]
-
-    # Prepare data for PyDeck
-    df_scan = pd.DataFrame(pts_aligned, columns=["x","y","z"])
-    vertices = np.asarray(mesh.vertices)
-    faces    = np.asarray(mesh.faces)
-
-    mesh_layer = pdk.Layer(
-        "MeshLayer",
-        data=[{"positions": vertices.tolist(), "indices": faces.tolist()}],
-        get_color=[180, 100, 200],
-        opacity=0.4,
-        wireframe=True,
-        coordinate_system=CoordinateSystem.CARTESIAN
-    )
-    scatter_layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=df_scan,
-        get_position=["x","y","z"],
-        get_color=[255,0,0],
-        get_radius=0.002,
-        coordinate_system=CoordinateSystem.CARTESIAN
-    )
-
-    center = vertices.mean(axis=0)
-    view_state = pdk.ViewState(
-        latitude=center[1],
-        longitude=center[0],
-        zoom=0,
-        pitch=45,
-        bearing=0
-    )
-
-    st.pydeck_chart(pdk.Deck(
-        map_style=None,
-        initial_view_state=view_state,
-        layers=[mesh_layer, scatter_layer]
-    ))
+    st.title("📐 Scan vs. CAD Alignment Viewer (Trimesh ICP)")
+    
+    # Upload widgets
+    scan_file = st.file_uploader("Upload Scan Point Cloud", type=["ply","pcd","xyz"])
+    mesh_file = st.file_uploader("Upload CAD Mesh (STL/OBJ/PLY)", type=["stl","obj","ply"])
+    
+    if scan_file and mesh_file:
+        # Save temporary files
+        with tempfile.NamedTemporaryFile(delete=False, suffix=scan_file.name) as tmp:
+            tmp.write(scan_file.getbuffer())
+            scan_path = tmp.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix=mesh_file.name) as tmp:
+            tmp.write(mesh_file.getbuffer())
+            mesh_path = tmp.name
+    
+        # Load scan and mesh
+        scan_data = trimesh.load(scan_path)
+        pts_scan = np.asarray(scan_data.vertices) if hasattr(scan_data, 'vertices') else np.loadtxt(scan_path)
+        mesh = trimesh.load(mesh_path)
+        pts_mesh, _ = trimesh.sample.sample_surface(mesh, 500000)
+    
+        # ICP registration
+        matrix, _ = trimesh.registration.icp(
+            pts_scan,
+            pts_mesh,
+            max_iterations=50,
+            tolerance=1e-5
+        )
+        # Apply transform
+        ones = np.ones((pts_scan.shape[0],1))
+        pts_hom = np.hstack([pts_scan, ones])
+        pts_aligned = (matrix @ pts_hom.T).T[:,:3]
+    
+        # Prepare data for PyDeck
+        df_scan = pd.DataFrame(pts_aligned, columns=["x","y","z"])
+        vertices = np.asarray(mesh.vertices)
+        faces    = np.asarray(mesh.faces)
+    
+        mesh_layer = pdk.Layer(
+            "MeshLayer",
+            data=[{"positions": vertices.tolist(), "indices": faces.tolist()}],
+            get_color=[180, 100, 200],
+            opacity=0.4,
+            wireframe=True,
+            coordinate_system=CoordinateSystem.CARTESIAN
+        )
+        scatter_layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=df_scan,
+            get_position=["x","y","z"],
+            get_color=[255,0,0],
+            get_radius=0.002,
+            coordinate_system=CoordinateSystem.CARTESIAN
+        )
+    
+        center = vertices.mean(axis=0)
+        view_state = pdk.ViewState(
+            latitude=center[1],
+            longitude=center[0],
+            zoom=0,
+            pitch=45,
+            bearing=0
+        )
+    
+        st.pydeck_chart(pdk.Deck(
+            map_style=None,
+            initial_view_state=view_state,
+            layers=[mesh_layer, scatter_layer]
+        ))
 
 
 
