@@ -4,3 +4,11 @@ plotly
 rtree
 scipy
 matplotlib
+numpy
+pandas
+json
+io
+matplotlib
+open3d
+pydeck
+tempfile
