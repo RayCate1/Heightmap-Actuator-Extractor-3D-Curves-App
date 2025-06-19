@@ -192,82 +192,46 @@ if st.button("Process"):
 
 
 
-st.title("📐 Scan vs. CAD Alignment Viewer")
 
-# Upload widgets for scan point cloud and CAD mesh
+
+st.title("📐 Scan vs. CAD Alignment Viewer (Trimesh ICP)")
+
+# Upload widgets
 scan_file = st.file_uploader("Upload Scan Point Cloud", type=["ply","pcd","xyz"])
-mesh_file = st.file_uploader("Upload CAD Mesh (STL)", type=["stl","obj","ply"])
+mesh_file = st.file_uploader("Upload CAD Mesh (STL/OBJ/PLY)", type=["stl","obj","ply"])
 
 if scan_file and mesh_file:
-    # Save uploads to temporary files for Open3D to read
-    with tempfile.NamedTemporaryFile(delete=False, suffix=scan_file.name) as tmp_scan:
-        tmp_scan.write(scan_file.getbuffer())
-        scan_path = tmp_scan.name
-    with tempfile.NamedTemporaryFile(delete=False, suffix=mesh_file.name) as tmp_mesh:
-        tmp_mesh.write(mesh_file.getbuffer())
-        mesh_path = tmp_mesh.name
+    # Save temporary files
+    with tempfile.NamedTemporaryFile(delete=False, suffix=scan_file.name) as tmp:
+        tmp.write(scan_file.getbuffer())
+        scan_path = tmp.name
+    with tempfile.NamedTemporaryFile(delete=False, suffix=mesh_file.name) as tmp:
+        tmp.write(mesh_file.getbuffer())
+        mesh_path = tmp.name
 
-    @st.cache_data
-    def load_and_align(scan_path, mesh_path):
-        # Load scan and mesh
-        scan = o3d.io.read_point_cloud(scan_path)
-        mesh = o3d.io.read_triangle_mesh(mesh_path)
-        # Sample mesh to a point cloud
-        pcd_mesh = mesh.sample_points_uniformly(number_of_points=500_000)
+    # Load scan and mesh
+    scan_data = trimesh.load(scan_path)
+    pts_scan = np.asarray(scan_data.vertices) if hasattr(scan_data, 'vertices') else np.loadtxt(scan_path)
+    mesh = trimesh.load(mesh_path)
+    pts_mesh, _ = trimesh.sample.sample_surface(mesh, 500000)
 
-        # Preprocessing: downsample, estimate normals, compute FPFH features
-        def preprocess(pcd, voxel_size):
-            pcd_down = pcd.voxel_down_sample(voxel_size)
-            pcd_down.estimate_normals(
-                o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size*2, max_nn=30)
-            )
-            fpfh = o3d.pipelines.registration.compute_fpfh_feature(
-                pcd_down,
-                o3d.geometry.KDTreeSearchParamHybrid(radius=voxel_size*5, max_nn=100)
-            )
-            return pcd_down, fpfh
+    # ICP registration
+    matrix, _ = trimesh.registration.icp(
+        pts_scan,
+        pts_mesh,
+        max_iterations=50,
+        tolerance=1e-5
+    )
+    # Apply transform
+    ones = np.ones((pts_scan.shape[0],1))
+    pts_hom = np.hstack([pts_scan, ones])
+    pts_aligned = (matrix @ pts_hom.T).T[:,:3]
 
-        voxel_size = 0.005
-        scan_down, fpfh_scan = preprocess(scan, voxel_size)
-        mesh_down, fpfh_mesh = preprocess(pcd_mesh, voxel_size)
-
-        # Global alignment with RANSAC
-        distance_threshold = voxel_size * 1.5
-        result_ransac = o3d.pipelines.registration.registration_ransac_based_on_feature_matching(
-            scan_down, mesh_down, fpfh_scan, fpfh_mesh, True,
-            distance_threshold,
-            o3d.pipelines.registration.TransformationEstimationPointToPoint(False),
-            4,
-            [
-                o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength(0.9),
-                o3d.pipelines.registration.CorrespondenceCheckerBasedOnDistance(distance_threshold)
-            ],
-            o3d.pipelines.registration.RANSACConvergenceCriteria(4000000, 500)
-        )
-
-        # Refinement with point-to-plane ICP
-        icp_thresh = voxel_size * 0.5
-        result_icp = o3d.pipelines.registration.registration_icp(
-            scan, pcd_mesh,
-            icp_thresh,
-            result_ransac.transformation,
-            o3d.pipelines.registration.TransformationEstimationPointToPlane()
-        )
-        scan.transform(result_icp.transformation)
-        return scan, mesh
-
-    # Run alignment once and cache results
-    scan, mesh = load_and_align(scan_path, mesh_path)
-
-    # Prepare scan points for visualization
-    pts = np.asarray(scan.points)
-    df = pd.DataFrame(pts, columns=["x","y","z"])
-
-    # Prepare mesh geometry
+    # Prepare data for PyDeck
+    df_scan = pd.DataFrame(pts_aligned, columns=["x","y","z"])
     vertices = np.asarray(mesh.vertices)
-    faces = np.asarray(mesh.triangles)
+    faces    = np.asarray(mesh.faces)
 
-    # Define layers for PyDeck
     mesh_layer = pdk.Layer(
         "MeshLayer",
         data=[{"positions": vertices.tolist(), "indices": faces.tolist()}],
@@ -278,14 +242,13 @@ if scan_file and mesh_file:
     )
     scatter_layer = pdk.Layer(
         "ScatterplotLayer",
-        data=df,
+        data=df_scan,
         get_position=["x","y","z"],
-        get_color=[255, 0, 0],
+        get_color=[255,0,0],
         get_radius=0.002,
         coordinate_system=CoordinateSystem.CARTESIAN
     )
 
-    # Center view on CAD mesh
     center = vertices.mean(axis=0)
     view_state = pdk.ViewState(
         latitude=center[1],
@@ -295,15 +258,11 @@ if scan_file and mesh_file:
         bearing=0
     )
 
-    # Render with Streamlit
     st.pydeck_chart(pdk.Deck(
         map_style=None,
         initial_view_state=view_state,
         layers=[mesh_layer, scatter_layer]
     ))
-
-
-
 
 
 
