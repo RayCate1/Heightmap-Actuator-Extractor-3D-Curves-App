@@ -221,22 +221,24 @@ if st.button("Process"):
     vertices = np.asarray(mesh.vertices)
     faces    = np.asarray(mesh.faces)
     
+
     mesh_layer = pdk.Layer(
         "MeshLayer",
         data=[{"positions": vertices.tolist(), "indices": faces.tolist()}],
         get_color=[180, 100, 200],
         opacity=0.4,
         wireframe=True,
-        coordinate_system=CoordinateSystem.CARTESIAN
-     )
+        coordinate_system=COORDINATE_SYSTEM.CARTESIAN
+    )
+    
     scatter_layer = pdk.Layer(
         "ScatterplotLayer",
-        data=df_scan,
-        get_position=["x","y","z"],
-        get_color=[255,0,0],
+        data=df,  # your DataFrame of scan points
+        get_position=["x", "y", "z"],
+        get_color=[255, 0, 0],
         get_radius=0.002,
-        coordinate_system=CoordinateSystem.CARTESIAN
-     )
+        coordinate_system=COORDINATE_SYSTEM.CARTESIAN
+    )
     
     center = vertices.mean(axis=0)
     view_state = pdk.ViewState(
