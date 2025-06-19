@@ -20,7 +20,6 @@ from io import BytesIO
 from scipy.interpolate import UnivariateSpline
 import matplotlib.pyplot as plt
 import pydeck as pdk
-from pydeck.constants import COORDINATE_SYSTEM
 import tempfile
 
 st.set_page_config(layout="wide")
@@ -221,23 +220,27 @@ if st.button("Process"):
     vertices = np.asarray(mesh.vertices)
     faces    = np.asarray(mesh.faces)
     
-
+    # Deck.gl coordinate system enum:
+    CARTESIAN = 3
+    
+    # Mesh layer with Cartesian coordinates
     mesh_layer = pdk.Layer(
         "MeshLayer",
         data=[{"positions": vertices.tolist(), "indices": faces.tolist()}],
         get_color=[180, 100, 200],
         opacity=0.4,
         wireframe=True,
-        coordinate_system=COORDINATE_SYSTEM.CARTESIAN
+        coordinate_system=CARTESIAN
     )
     
+    # Scan points layer with Cartesian coordinates
     scatter_layer = pdk.Layer(
         "ScatterplotLayer",
         data=df,  # your DataFrame of scan points
         get_position=["x", "y", "z"],
         get_color=[255, 0, 0],
         get_radius=0.002,
-        coordinate_system=COORDINATE_SYSTEM.CARTESIAN
+        coordinate_system=CARTESIAN
     )
     
     center = vertices.mean(axis=0)
