@@ -20,7 +20,7 @@ from io import BytesIO
 from scipy.interpolate import UnivariateSpline
 import matplotlib.pyplot as plt
 import pydeck as pdk
-from pydeck.types import CoordinateSystem
+from pydeck.constants import COORDINATE_SYSTEM
 import tempfile
 
 st.set_page_config(layout="wide")
