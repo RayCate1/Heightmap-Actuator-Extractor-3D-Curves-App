@@ -272,7 +272,11 @@ if st.button("Process"):
     )
     st.plotly_chart(fig3d, use_container_width=True)
 
-    st.subheader("Rcate3@vols.utk.edu")
+
+
+
+
+    
 
 #Process mesh button inside of Process button after all the animation and machine outputs are made.
     scan_file = st.file_uploader("Upload Scan Point Cloud", type=["ply","pcd","xyz"])
@@ -353,8 +357,7 @@ if st.button("Process"):
 #u3u
 
 
-
-
+st.subheader("Rcate3@vols.utk.edu")
 
 
 
