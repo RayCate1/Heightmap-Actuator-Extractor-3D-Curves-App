@@ -29,7 +29,8 @@ st.title("Heightmap Actuator Extractor & 3D Curves")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 uploaded = st.file_uploader("Upload planar geometry (OBJ/STL in inches)", type=["stl", "obj"])
-
+scan_file = st.file_uploader("Upload Scan Point Cloud", type=["ply","pcd","xyz"])
+mesh_file = st.file_uploader("Upload CAD Mesh (STL/OBJ/PLY)", type=["stl","obj","ply"])
 # ── 2) MACHINE BOUNDS & ACTUATORS (Imperial) ─────────────────
 st.markdown("### Machine Bounds & Actuators")
 b1, b2 = st.columns(2)
@@ -195,10 +196,6 @@ if st.button("Process"):
 
 
     st.title("📐 Scan vs. CAD Alignment Viewer (Trimesh ICP)")
-    
-    # Upload widgets
-    scan_file = st.file_uploader("Upload Scan Point Cloud", type=["ply","pcd","xyz"])
-    mesh_file = st.file_uploader("Upload CAD Mesh (STL/OBJ/PLY)", type=["stl","obj","ply"])
     
     if scan_file and mesh_file:
         # Save temporary files
