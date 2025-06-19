@@ -1,14 +1,9 @@
-trimesh
 streamlit
-plotly
-rtree
-scipy
-matplotlib
 numpy
+trimesh
 pandas
-json
-io
+plotly
+scipy
 matplotlib
 open3d
 pydeck
-tempfile
