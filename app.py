@@ -23,7 +23,7 @@ import pydeck as pdk
 import tempfile
 
 st.set_page_config(layout="wide")
-st.title("Heightmap Actuator Extractor & 3D Curves")
+st.title("Heightmap Actuator Extractor & 3D Curves ahh")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 cad_file = st.file_uploader("Upload planar geometry (OBJ/STL in inches)", type=["stl", "obj"])
