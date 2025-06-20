@@ -79,8 +79,8 @@ if st.session_state.step == 1:
         bounds_height_in = height_val
         
         # Load mesh (inches assumed)
-        mesh = trimesh.load(BytesIO(.read()),
-                            file_type=.name.split('.')[-1])
+        mesh = trimesh.load(BytesIO(cad_file.read()),
+                            file_type=cad_file.name.split('.')[-1])
         
         # Error if mesh empty
         if mesh.is_empty:
