@@ -381,18 +381,7 @@ if st.session_state.step == 2:
                 
                 
                 
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                st.session_state.step = 1
+        st.session_state.step = 1
 
 
 
