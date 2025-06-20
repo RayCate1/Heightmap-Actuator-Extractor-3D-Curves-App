@@ -27,6 +27,10 @@ st.title("Heightmap Actuator Extractor & 3D Curves ahh")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 cad_file = st.file_uploader("Upload planar geometry (OBJ/STL in inches)", type=["stl", "obj"])
+scan_file = st.file_uploader(
+    "Upload Scan (Point Cloud or Mesh: PLY, PCD, XYZ, STL, OBJ)", 
+    type=["ply","pcd","xyz","stl","obj"]
+)
 # ── 2) MACHINE BOUNDS & ACTUATORS (Imperial) ─────────────────
 st.markdown("### Machine Bounds & Actuators")
 b1, b2 = st.columns(2)
@@ -290,11 +294,6 @@ if st.session_state.step == 1:
 
 #Process mesh button inside of Process button after all the animation and machine outputs are made.
 if st.session_state.step == 2:
-    scan_file = st.file_uploader(
-        "Upload Scan (Point Cloud or Mesh: PLY, PCD, XYZ, STL, OBJ)", 
-        type=["ply","pcd","xyz","stl","obj"]
-    )
-    
     if st.button("Process Scan"):
         # Validate uploads
         if not scan_file:
