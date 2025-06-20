@@ -329,8 +329,12 @@ if st.button("Process Scan"):
 
     # Run ICP registration: scan_pts -> cad_pts
     matrix, _ = trimesh.registration.icp(
-        scan_pts, cad_pts, max_iterations=50, tolerance=1e-5
+        scan_pts,
+        cad_pts,
+        max_iterations=50,
+        threshold=1e-5
     )
+
     # Apply transform
     ones = np.ones((scan_pts.shape[0], 1))
     hom = np.hstack([scan_pts, ones])
