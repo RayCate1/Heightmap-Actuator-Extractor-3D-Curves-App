@@ -328,7 +328,7 @@ if st.button("Process Scan"):
         mesh_faces = np.asarray(cad_mesh.faces)
 
     # Run ICP registration: scan_pts -> cad_pts
-    matrix, _ = trimesh.registration.icp(
+    matrix, _, _ = trimesh.registration.icp(
         scan_pts,
         cad_pts,
         max_iterations=50,
