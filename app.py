@@ -27,9 +27,8 @@ st.title("Heightmap Actuator Extractor & 3D Curves ahh")
 
 # ── 1) MODEL INPUT ─────────────────────────────────────────
 cad_file = st.file_uploader("Upload planar geometry (OBJ/STL in inches)", type=["stl", "obj"])
-scan_file = st.file_uploader(
-    "Upload Scan (Point Cloud or Mesh: PLY, PCD, XYZ, STL, OBJ)", 
-    type=["ply","pcd","xyz","stl","obj"]
+uploaded_scan = st.file_uploader(
+    "Upload scanned geometry (STL/OBJ/PLY)", type=["stl","obj","ply"], key="scan_uploader"
 )
 # ── 2) MACHINE BOUNDS & ACTUATORS (Imperial) ─────────────────
 st.markdown("### Machine Bounds & Actuators")
@@ -287,94 +286,44 @@ if st.button("Process"):
 
     
 
-#Process mesh button inside of Process button after all the animation and machine outputs are made.
-if st.button("Process Scan"):
-    # Validate uploads
-    if not scan_file:
-        st.error("Please upload a scan file.")
+
+if st.button("Process Mesh"):
+    if not uploaded_scan:
+        st.error("Please upload a scanned mesh file.")
         st.stop()
-
-    # Save uploads to temp files
-    with tempfile.NamedTemporaryFile(delete=False, suffix=cad_file.name) as tmp:
-        tmp.write(cad_file.getbuffer())
-        cad_path = tmp.name
-    with tempfile.NamedTemporaryFile(delete=False, suffix=scan_file.name) as tmp:
-        tmp.write(scan_file.getbuffer())
-        scan_path = tmp.name
-
-    # Load CAD mesh
-    cad_mesh = trimesh.load(cad_path)
-    # Sample CAD to point cloud for registration
-    cad_pts, _ = trimesh.sample.sample_surface(cad_mesh, 500_000)
-
-    # Load scan: if mesh, sample surface; if point cloud, load points directly
-    scan_ext = scan_file.name.lower().split('.')[-1]
-    if scan_ext in ("stl", "obj"):
-        scan_mesh = trimesh.load(scan_path)
-        scan_pts, _ = trimesh.sample.sample_surface(scan_mesh, 500_000)
-        mesh_vertices = np.asarray(scan_mesh.vertices)
-        mesh_faces = np.asarray(scan_mesh.faces)
-    else:
-        # assume simple XYZ or PLY point cloud
-        try:
-            # Trimesh will load ply/pcd as mesh with vertices
-            pc = trimesh.load(scan_path)
-            scan_pts = np.asarray(pc.vertices)
-        except Exception:
-            # Fallback to csv/xyz text
-            scan_pts = np.loadtxt(scan_path)
-        # For rendering mesh CAD only
-        mesh_vertices = np.asarray(cad_mesh.vertices)
-        mesh_faces = np.asarray(cad_mesh.faces)
-
-    # Run ICP registration: scan_pts -> cad_pts
-    matrix, _, _ = trimesh.registration.icp(
-        scan_pts,
-        cad_pts,
-        max_iterations=50,
-        threshold=1e-5
+    # Load scan and original
+    scan = trimesh.load(BytesIO(uploaded_scan.read()),
+                        file_type=uploaded_scan.name.split('.')[-1])
+    if scan.is_empty:
+        st.error("Scanned mesh is empty.")
+        st.stop()
+    # Sample point clouds
+    orig_pts = mesh.sample(10000)
+    scan_pts = scan.sample(10000)
+    # Run ICP registration to align scan to original (no scaling)
+    matrix, _ = trimesh.registration.icp(
+        scan_pts, orig_pts, max_iterations=50, scale=False
     )
-
     # Apply transform
-    ones = np.ones((scan_pts.shape[0], 1))
-    hom = np.hstack([scan_pts, ones])
-    aligned = (matrix @ hom.T).T[:, :3]
-
-    # Prepare DataFrame for scan
-    df_scan = pd.DataFrame(aligned, columns=["x","y","z"])
-
-    # Deck.gl Cartesian constant
-    CARTESIAN = 3
-
-    # CAD mesh layer
-    mesh_layer = pdk.Layer(
-        "MeshLayer",
-        data=[{"positions": mesh_vertices.tolist(), "indices": mesh_faces.tolist()}],
-        get_color=[180,100,200],
-        opacity=0.4,
-        wireframe=True,
-        coordinate_system=CARTESIAN
-    )
-    # Scan points layer
-    scatter_layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=df_scan,
-        get_position=["x","y","z"],
-        get_color=[255,0,0],
-        get_radius=0.002,
-        coordinate_system=CARTESIAN
-    )
-
-    # View state centered on CAD
-    center = mesh_vertices.mean(axis=0)
-    view = pdk.ViewState(latitude=center[1], longitude=center[0], zoom=0, pitch=45)
-
-    # Render
-    st.pydeck_chart(pdk.Deck(
-        map_style=None,
-        initial_view_state=view,
-        layers=[mesh_layer, scatter_layer]
+    scan.apply_transform(matrix)
+    # Compute Hausdorff distances before and after
+    before = trimesh.proximity.max_distance(scan_pts, mesh)
+    after  = trimesh.proximity.max_distance(scan.sample(10000), mesh)
+    st.write(f"Max Hausdorff distance before: {before:.4f} in")
+    st.write(f"Max Hausdorff distance after : {after:.4f} in")
+    # Visualize both meshes
+    st.subheader("Original vs Aligned Scan")
+    fig_cmp = go.Figure()
+    fig_cmp.add_trace(go.Mesh3d(
+        x=mesh.vertices[:,0], y=mesh.vertices[:,1], z=mesh.vertices[:,2],
+        opacity=0.2, color='blue', name='Original'
     ))
+    fig_cmp.add_trace(go.Mesh3d(
+        x=scan.vertices[:,0], y=scan.vertices[:,1], z=scan.vertices[:,2],
+        opacity=0.2, color='red', name='Aligned Scan'
+    ))
+    fig_cmp.update_layout(margin=dict(l=0,r=0,t=30,b=0))
+    st.plotly_chart(fig_cmp, use_container_width=True)
             
 
 
