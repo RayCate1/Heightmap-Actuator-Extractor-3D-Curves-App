@@ -69,7 +69,7 @@ if st.session_state.step == 1:
     if st.button("Process"):
         st.session_state.step = 2
         # If no mesh -> Error message
-        if not :
+        if not cad_file:
             st.error("Please upload a model file.")
             st.stop()
             
