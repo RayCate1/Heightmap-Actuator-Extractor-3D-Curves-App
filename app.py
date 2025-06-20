@@ -288,96 +288,96 @@ if st.session_state.step == 1:
 
     
 
-        #Process mesh button inside of Process button after all the animation and machine outputs are made.
-        if st.session_state.step == 2:
-            scan_file = st.file_uploader(
-                "Upload Scan (Point Cloud or Mesh: PLY, PCD, XYZ, STL, OBJ)", 
-                type=["ply","pcd","xyz","stl","obj"]
-            )
-            
-            if st.button("Process Scan"):
-                # Validate uploads
-                if not scan_file:
-                    st.error("Please upload a scan file.")
-                    st.stop()
-            
-                # Save uploads to temp files
-                with tempfile.NamedTemporaryFile(delete=False, suffix=cad_file.name) as tmp:
-                    tmp.write(cad_file.getbuffer())
-                    cad_path = tmp.name
-                with tempfile.NamedTemporaryFile(delete=False, suffix=scan_file.name) as tmp:
-                    tmp.write(scan_file.getbuffer())
-                    scan_path = tmp.name
-            
-                # Load CAD mesh
-                cad_mesh = trimesh.load(cad_path)
-                # Sample CAD to point cloud for registration
-                cad_pts, _ = trimesh.sample.sample_surface(cad_mesh, 500_000)
-            
-                # Load scan: if mesh, sample surface; if point cloud, load points directly
-                scan_ext = scan_file.name.lower().split('.')[-1]
-                if scan_ext in ("stl", "obj"):
-                    scan_mesh = trimesh.load(scan_path)
-                    scan_pts, _ = trimesh.sample.sample_surface(scan_mesh, 500_000)
-                    mesh_vertices = np.asarray(scan_mesh.vertices)
-                    mesh_faces = np.asarray(scan_mesh.faces)
-                else:
-                    # assume simple XYZ or PLY point cloud
-                    try:
-                        # Trimesh will load ply/pcd as mesh with vertices
-                        pc = trimesh.load(scan_path)
-                        scan_pts = np.asarray(pc.vertices)
-                    except Exception:
-                        # Fallback to csv/xyz text
-                        scan_pts = np.loadtxt(scan_path)
-                    # For rendering mesh CAD only
-                    mesh_vertices = np.asarray(cad_mesh.vertices)
-                    mesh_faces = np.asarray(cad_mesh.faces)
-            
-                # Run ICP registration: scan_pts -> cad_pts
-                matrix, _ = trimesh.registration.icp(
-                    scan_pts, cad_pts, max_iterations=50, tolerance=1e-5
-                )
-                # Apply transform
-                ones = np.ones((scan_pts.shape[0], 1))
-                hom = np.hstack([scan_pts, ones])
-                aligned = (matrix @ hom.T).T[:, :3]
-            
-                # Prepare DataFrame for scan
-                df_scan = pd.DataFrame(aligned, columns=["x","y","z"])
-            
-                # Deck.gl Cartesian constant
-                CARTESIAN = 3
-            
-                # CAD mesh layer
-                mesh_layer = pdk.Layer(
-                    "MeshLayer",
-                    data=[{"positions": mesh_vertices.tolist(), "indices": mesh_faces.tolist()}],
-                    get_color=[180,100,200],
-                    opacity=0.4,
-                    wireframe=True,
-                    coordinate_system=CARTESIAN
-                )
-                # Scan points layer
-                scatter_layer = pdk.Layer(
-                    "ScatterplotLayer",
-                    data=df_scan,
-                    get_position=["x","y","z"],
-                    get_color=[255,0,0],
-                    get_radius=0.002,
-                    coordinate_system=CARTESIAN
-                )
-            
-                # View state centered on CAD
-                center = mesh_vertices.mean(axis=0)
-                view = pdk.ViewState(latitude=center[1], longitude=center[0], zoom=0, pitch=45)
-            
-                # Render
-                st.pydeck_chart(pdk.Deck(
-                    map_style=None,
-                    initial_view_state=view,
-                    layers=[mesh_layer, scatter_layer]
-                ))
+#Process mesh button inside of Process button after all the animation and machine outputs are made.
+if st.session_state.step == 2:
+    scan_file = st.file_uploader(
+        "Upload Scan (Point Cloud or Mesh: PLY, PCD, XYZ, STL, OBJ)", 
+        type=["ply","pcd","xyz","stl","obj"]
+    )
+    
+    if st.button("Process Scan"):
+        # Validate uploads
+        if not scan_file:
+            st.error("Please upload a scan file.")
+            st.stop()
+    
+        # Save uploads to temp files
+        with tempfile.NamedTemporaryFile(delete=False, suffix=cad_file.name) as tmp:
+            tmp.write(cad_file.getbuffer())
+            cad_path = tmp.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix=scan_file.name) as tmp:
+            tmp.write(scan_file.getbuffer())
+            scan_path = tmp.name
+    
+        # Load CAD mesh
+        cad_mesh = trimesh.load(cad_path)
+        # Sample CAD to point cloud for registration
+        cad_pts, _ = trimesh.sample.sample_surface(cad_mesh, 500_000)
+    
+        # Load scan: if mesh, sample surface; if point cloud, load points directly
+        scan_ext = scan_file.name.lower().split('.')[-1]
+        if scan_ext in ("stl", "obj"):
+            scan_mesh = trimesh.load(scan_path)
+            scan_pts, _ = trimesh.sample.sample_surface(scan_mesh, 500_000)
+            mesh_vertices = np.asarray(scan_mesh.vertices)
+            mesh_faces = np.asarray(scan_mesh.faces)
+        else:
+            # assume simple XYZ or PLY point cloud
+            try:
+                # Trimesh will load ply/pcd as mesh with vertices
+                pc = trimesh.load(scan_path)
+                scan_pts = np.asarray(pc.vertices)
+            except Exception:
+                # Fallback to csv/xyz text
+                scan_pts = np.loadtxt(scan_path)
+            # For rendering mesh CAD only
+            mesh_vertices = np.asarray(cad_mesh.vertices)
+            mesh_faces = np.asarray(cad_mesh.faces)
+    
+        # Run ICP registration: scan_pts -> cad_pts
+        matrix, _ = trimesh.registration.icp(
+            scan_pts, cad_pts, max_iterations=50, tolerance=1e-5
+        )
+        # Apply transform
+        ones = np.ones((scan_pts.shape[0], 1))
+        hom = np.hstack([scan_pts, ones])
+        aligned = (matrix @ hom.T).T[:, :3]
+    
+        # Prepare DataFrame for scan
+        df_scan = pd.DataFrame(aligned, columns=["x","y","z"])
+    
+        # Deck.gl Cartesian constant
+        CARTESIAN = 3
+    
+        # CAD mesh layer
+        mesh_layer = pdk.Layer(
+            "MeshLayer",
+            data=[{"positions": mesh_vertices.tolist(), "indices": mesh_faces.tolist()}],
+            get_color=[180,100,200],
+            opacity=0.4,
+            wireframe=True,
+            coordinate_system=CARTESIAN
+        )
+        # Scan points layer
+        scatter_layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=df_scan,
+            get_position=["x","y","z"],
+            get_color=[255,0,0],
+            get_radius=0.002,
+            coordinate_system=CARTESIAN
+        )
+    
+        # View state centered on CAD
+        center = mesh_vertices.mean(axis=0)
+        view = pdk.ViewState(latitude=center[1], longitude=center[0], zoom=0, pitch=45)
+    
+        # Render
+        st.pydeck_chart(pdk.Deck(
+            map_style=None,
+            initial_view_state=view,
+            layers=[mesh_layer, scatter_layer]
+        ))
                 
                 
                 
