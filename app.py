@@ -62,8 +62,7 @@ with b2:
     # )
 # ── 3) LAUNCH PROCESS ────────────────────────────────────────
 #initalize session state counter
-if "step" not in st.session_state:
-    st.session_state.step = 1
+st.session_state.step = 1
     
 if st.session_state.step == 1:
     if st.button("Process"):
