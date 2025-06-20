@@ -67,7 +67,6 @@ if "step" not in st.session_state:
     
 if st.session_state.step == 1:
     if st.button("Process"):
-        st.session_state.step = 2
         # If no mesh -> Error message
         if not cad_file:
             st.error("Please upload a model file.")
@@ -280,6 +279,12 @@ if st.session_state.step == 1:
 
 
 
+        
+
+        st.session_state.step = 2
+
+
+
 
 
     
@@ -374,6 +379,26 @@ if st.session_state.step == 1:
                     initial_view_state=view,
                     layers=[mesh_layer, scatter_layer]
                 ))
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                st.session_state.step = 1
+
+
+
+
+
 
 
 
