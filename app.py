@@ -286,9 +286,6 @@ if st.button("Process"):
     
     if st.button("Process Scan"):
         # Validate uploads
-        if not cad_file:
-            st.error("Please upload a CAD file (STL/OBJ).")
-            st.stop()
         if not scan_file:
             st.error("Please upload a scan file.")
             st.stop()
