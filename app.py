@@ -293,6 +293,9 @@ if st.button("Process Mesh", key="process_mesh"):
     elif uploaded_scan is None:
         st.error("Please upload a scanned mesh file before processing.")
     else:
+        # Load mesh (inches assumed)
+        mesh = trimesh.load(BytesIO(cad_file.read()),
+                            file_type=cad_file.name.split('.')[-1])
         # load and align scan against `mesh` (the CAD)
         scan = trimesh.load(
             BytesIO(uploaded_scan.read()),
