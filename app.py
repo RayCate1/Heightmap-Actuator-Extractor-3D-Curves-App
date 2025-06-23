@@ -371,7 +371,7 @@ if st.button("Process Mesh", key="process_mesh"):
                 mode='markers',
                 marker=dict(
                     size=2,
-                    color='black',
+                    color='red',  # Scan points in red
                     opacity=0.6
                 ),
                 name='Scan Points'
@@ -386,7 +386,6 @@ if st.button("Process Mesh", key="process_mesh"):
                 height=700
             )
             st.plotly_chart(fig_cmp, use_container_width=True)
-
 
 
 
