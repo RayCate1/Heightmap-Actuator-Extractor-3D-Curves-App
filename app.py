@@ -287,48 +287,46 @@ if st.button("Process"):
 
 
 # separate Process Mesh button with unique key
-do_process = st.button("Process Mesh", key="process_mesh")
-if do_process:
-    if st.button("Process Mesh", key="process_mesh"):
-        if cad_file is None:
-            st.error("Please upload the original geometry first.")
-        elif uploaded_scan is None:
-            st.error("Please upload a scanned mesh file before processing.")
+if st.button("Process Mesh", key="process_mesh"):
+    if cad_file is None:
+        st.error("Please upload the original geometry first.")
+    elif uploaded_scan is None:
+        st.error("Please upload a scanned mesh file before processing.")
+    else:
+        # load and align scan against `mesh` (the CAD)
+        scan = trimesh.load(
+            BytesIO(uploaded_scan.read()),
+            file_type=uploaded_scan.name.split('.')[-1]
+        )
+        if scan.is_empty:
+            st.error("Scanned mesh is empty.")
         else:
-            # load and align scan against `mesh` (the CAD)
-            scan = trimesh.load(
-                BytesIO(uploaded_scan.read()),
-                file_type=uploaded_scan.name.split('.')[-1]
+            # Sample point clouds
+            orig_pts = mesh.sample(10000)
+            scan_pts = scan.sample(10000)
+            # Run ICP registration
+            matrix = trimesh.registration.icp(
+                scan_pts, orig_pts, max_iterations=50, scale=False
             )
-            if scan.is_empty:
-                st.error("Scanned mesh is empty.")
-            else:
-                # Sample point clouds
-                orig_pts = mesh.sample(10000)
-                scan_pts = scan.sample(10000)
-                # Run ICP registration
-                matrix = trimesh.registration.icp(
-                    scan_pts, orig_pts, max_iterations=50, scale=False
-                )
-                scan.apply_transform(matrix)
-                # Hausdorff distances
-                before = trimesh.proximity.max_distance(scan_pts, mesh)
-                after  = trimesh.proximity.max_distance(scan.sample(10000), mesh)
-                st.write(f"Max Hausdorff distance before: {before:.4f} in")
-                st.write(f"Max Hausdorff distance after : {after:.4f} in")
-                # Visualize meshes
-                st.subheader("Original vs Aligned Scan")
-                fig_cmp = go.Figure()
-                fig_cmp.add_trace(go.Mesh3d(
-                    x=mesh.vertices[:,0], y=mesh.vertices[:,1], z=mesh.vertices[:,2],
-                    opacity=0.2, color='blue', name='Original'
-                ))
-                fig_cmp.add_trace(go.Mesh3d(
-                    x=scan.vertices[:,0], y=scan.vertices[:,1], z=scan.vertices[:,2],
-                    opacity=0.2, color='red', name='Aligned Scan'
-                ))
-                fig_cmp.update_layout(margin=dict(l=0,r=0,t=30,b=0))
-                st.plotly_chart(fig_cmp, use_container_width=True)
+            scan.apply_transform(matrix)
+            # Hausdorff distances
+            before = trimesh.proximity.max_distance(scan_pts, mesh)
+            after  = trimesh.proximity.max_distance(scan.sample(10000), mesh)
+            st.write(f"Max Hausdorff distance before: {before:.4f} in")
+            st.write(f"Max Hausdorff distance after : {after:.4f} in")
+            # Visualize meshes
+            st.subheader("Original vs Aligned Scan")
+            fig_cmp = go.Figure()
+            fig_cmp.add_trace(go.Mesh3d(
+                x=mesh.vertices[:,0], y=mesh.vertices[:,1], z=mesh.vertices[:,2],
+                opacity=0.2, color='blue', name='Original'
+            ))
+            fig_cmp.add_trace(go.Mesh3d(
+                x=scan.vertices[:,0], y=scan.vertices[:,1], z=scan.vertices[:,2],
+                opacity=0.2, color='red', name='Aligned Scan'
+            ))
+            fig_cmp.update_layout(margin=dict(l=0,r=0,t=30,b=0))
+            st.plotly_chart(fig_cmp, use_container_width=True)
 
                 
 
