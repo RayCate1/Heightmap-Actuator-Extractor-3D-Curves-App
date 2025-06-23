@@ -300,9 +300,10 @@ if st.button("Process Mesh"):
     orig_pts = mesh.sample(10000)
     scan_pts = scan.sample(10000)
     # Run ICP registration to align scan to original (no scaling)
-    matrix, _ = trimesh.registration.icp(
-        scan_pts, orig_pts, max_iterations=50, scale=False
-    )
+    # Run ICP registration to align scan to original (no scaling)
+matrix = trimesh.registration.icp(
+    scan_pts, orig_pts, max_iterations=50, scale=False
+)
     # Apply transform
     scan.apply_transform(matrix)
     # Compute Hausdorff distances before and after
