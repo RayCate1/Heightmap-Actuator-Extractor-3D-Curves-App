@@ -289,17 +289,15 @@ if st.button("Process"):
 # separate Process Mesh button with unique key
 do_process = st.button("Process Mesh", key="process_mesh")
 if do_process:
-    if uploaded_scan is None:
-        st.error("Please upload a scanned mesh file before processing.")
-    else:
-        # read uploaded file content
-        scan_bytes = uploaded_scan.read()
-        if not scan_bytes:
-            st.error("Uploaded scan file is empty or unreadable.")
+    if st.button("Process Mesh", key="process_mesh"):
+        if cad_file is None:
+            st.error("Please upload the original geometry first.")
+        elif uploaded_scan is None:
+            st.error("Please upload a scanned mesh file before processing.")
         else:
-            # Load scan and original meshes
+            # load and align scan against `mesh` (the CAD)
             scan = trimesh.load(
-                BytesIO(scan_bytes),
+                BytesIO(uploaded_scan.read()),
                 file_type=uploaded_scan.name.split('.')[-1]
             )
             if scan.is_empty:
