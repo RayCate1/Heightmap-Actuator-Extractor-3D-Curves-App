@@ -30,6 +30,9 @@ cad_file = st.file_uploader("Upload planar geometry (OBJ/STL in inches)", type=[
 uploaded_scan = st.file_uploader(
     "Upload scanned geometry (STL/OBJ/PLY)", type=["stl","obj","ply"], key="scan_uploader"
 )
+# Load mesh (inches assumed)
+mesh = trimesh.load(BytesIO(cad_file.read()),
+                    file_type=cad_file.name.split('.')[-1])
 # ── 2) MACHINE BOUNDS & ACTUATORS (Imperial) ─────────────────
 st.markdown("### Machine Bounds & Actuators")
 b1, b2 = st.columns(2)
@@ -74,10 +77,6 @@ if st.button("Process"):
     #    width_val, height_val are now inches
     bounds_width_in  = width_val
     bounds_height_in = height_val
-    
-    # Load mesh (inches assumed)
-    mesh = trimesh.load(BytesIO(cad_file.read()),
-                        file_type=cad_file.name.split('.')[-1])
     
     # Error if mesh empty
     if mesh.is_empty:
