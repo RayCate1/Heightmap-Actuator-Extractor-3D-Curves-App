@@ -293,9 +293,28 @@ if st.button("Process Mesh", key="process_mesh"):
     elif uploaded_scan is None:
         st.error("Please upload a scanned mesh file before processing.")
     else:
+        # 2) Bounds & actuator X positions (inches)
+        #    width_val, height_val are now inches
+        bounds_width_in  = width_val
+        bounds_height_in = height_val
+    
         # Load mesh (inches assumed)
         mesh = trimesh.load(BytesIO(cad_file.read()),
                             file_type=cad_file.name.split('.')[-1])
+        # Error if mesh empty
+        if mesh.is_empty:
+            st.error("Mesh is empty.")
+            st.stop()
+            
+        # 4) Actuator X positions in mesh‐space
+        if num_actuators > 1:
+            xs_in = np.linspace(0, bounds_width_in, num_actuators)
+        else:
+            xs_in = np.array([0.0])
+            
+        #Construct bounding box
+        (xmin, ymin, zmin), (xmax, ymax, zmax) = mesh.bounds
+        xs_mesh = xmin + (xs_in / bounds_width_in) * (xmax - xmin)
         # load and align scan against `mesh` (the CAD)
         scan = trimesh.load(
             BytesIO(uploaded_scan.read()),
