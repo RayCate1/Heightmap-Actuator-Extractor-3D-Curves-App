@@ -284,14 +284,15 @@ if st.button("Process CAD", key="process_cad"):
     
 
 
-# ── 2) PROCESS MESH (SCAN) ────────────────────────────
 if st.button("Process Mesh", key="process_mesh"):
+    # 2a) Check that the before‐mesh is present
     if cad_file is None:
         st.error("Please upload an original geometry file first.")
+    # 2b) Check that the scan has been uploaded
     elif uploaded_scan is None:
         st.error("Please upload a scanned mesh file.")
     else:
-        # Load the original CAD again
+        # 2c) Reload the original CAD mesh
         mesh = trimesh.load(
             BytesIO(cad_file.read()),
             file_type=cad_file.name.split('.')[-1]
@@ -300,7 +301,7 @@ if st.button("Process Mesh", key="process_mesh"):
             st.error("Original mesh is empty.")
             st.stop()
 
-        # Load the scanned mesh
+        # 2d) Load the scanned mesh
         scan_bytes = uploaded_scan.read()
         scan = trimesh.load(
             BytesIO(scan_bytes),
@@ -309,33 +310,46 @@ if st.button("Process Mesh", key="process_mesh"):
         if scan.is_empty:
             st.error("Scanned mesh is empty.")
         else:
-            # Now ‘mesh’ (original) and ‘scan’ are both defined locally
-            # … do ICP, Hausdorff, plotting, etc. …
+            # 2e) Align via ICP (no scaling)
             orig_pts = mesh.sample(10000)
             scan_pts = scan.sample(10000)
-            # Run ICP, which returns (matrix, distances, iterations)
             matrix, _, _ = trimesh.registration.icp(
                 scan_pts, orig_pts, max_iterations=50, scale=False
             )
             scan.apply_transform(matrix)
-            before = trimesh.proximity.max_distance(scan_pts, mesh)
-            after  = trimesh.proximity.max_distance(scan.sample(10000), mesh)
+
+            # 2f) Compute Hausdorff via signed-distance
+            from trimesh.proximity import ProximityQuery
+            import numpy as np
+            pq     = ProximityQuery(mesh)
+            before = float(np.max(np.abs(pq.signed_distance(scan_pts))))
+            after  = float(np.max(np.abs(pq.signed_distance(scan.sample(10000)))))
+
             st.write(f"Max Hausdorff before: {before:.4f} in")
             st.write(f"Max Hausdorff after : {after:.4f} in")
 
-            # Visualize meshes
+            # 2g) Overlay plot
             st.subheader("Original vs Aligned Scan")
             fig_cmp = go.Figure()
             fig_cmp.add_trace(go.Mesh3d(
-                x=mesh.vertices[:,0], y=mesh.vertices[:,1], z=mesh.vertices[:,2],
-                opacity=0.2, color='blue', name='Original'
+                x=mesh.vertices[:,0],
+                y=mesh.vertices[:,1],
+                z=mesh.vertices[:,2],
+                opacity=0.2,
+                color='blue',
+                name='Original'
             ))
             fig_cmp.add_trace(go.Mesh3d(
-                x=scan.vertices[:,0], y=scan.vertices[:,1], z=scan.vertices[:,2],
-                opacity=0.2, color='red', name='Aligned Scan'
+                x=scan.vertices[:,0],
+                y=scan.vertices[:,1],
+                z=scan.vertices[:,2],
+                opacity=0.2,
+                color='red',
+                name='Aligned Scan'
             ))
-            fig_cmp.update_layout(margin=dict(l=0,r=0,t=30,b=0))
+            fig_cmp.update_layout(margin=dict(l=0, r=0, t=30, b=0))
             st.plotly_chart(fig_cmp, use_container_width=True)
+
 
                 
 
