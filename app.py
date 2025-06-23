@@ -282,8 +282,10 @@ if st.button("Process CAD", key="process_cad"):
 
 
     
-
-
+if 'mesh' not in st.session_state:
+    st.session_state.mesh = None
+if 'scan_pts' not in st.session_state:
+    st.session_state.scan_pts = None
 if st.button("Process Mesh", key="process_mesh"):
     # 2a) Check that the before‐mesh is present
     if cad_file is None:
@@ -350,56 +352,46 @@ if st.button("Process Mesh", key="process_mesh"):
             fig_cmp.update_layout(margin=dict(l=0, r=0, t=30, b=0))
             st.plotly_chart(fig_cmp, use_container_width=True)
             # Dsiplay more stufffff
-            # 10) Comparison: Process Mesh with visualization updates and rotation controls
-            # Rotation sliders for mesh orientation
-            yaw   = st.slider("Yaw (around Z)", -180.0, 180.0, 0.0, key="yaw")
-            pitch = st.slider("Pitch (around Y)", -180.0, 180.0, 0.0, key="pitch")
-            roll  = st.slider("Roll (around X)", -180.0, 180.0, 0.0, key="roll")
-            
-            # Build rotation matrix
-            from trimesh.transformations import rotation_matrix
-            t = np.eye(4)
-            t = rotation_matrix(np.radians(roll),  [1,0,0]) @ t
-            t = rotation_matrix(np.radians(pitch), [0,1,0]) @ t
-            t = rotation_matrix(np.radians(yaw),   [0,0,1]) @ t
-            
-            st.subheader("Original Mesh & Scan Points Overlay (Rotatable)")
-            fig_cmp = go.Figure()
-            # Transform copy of mesh for visualization
-            vis_mesh = mesh.copy()
-            vis_mesh.apply_transform(t)
-            fig_cmp.add_trace(go.Mesh3d(
-                x=vis_mesh.vertices[:,0],
-                y=vis_mesh.vertices[:,1],
-                z=vis_mesh.vertices[:,2],
-                opacity=0.2,
-                color='blue',
-                name='Original Mesh'
-            ))
-            # Transform scan points as well
-            rotated_pts = (np.hstack((scan_pts, np.ones((len(scan_pts),1)))) @ t.T)[:,:3]
-            fig_cmp.add_trace(go.Scatter3d(
-                x=rotated_pts[:,0],
-                y=rotated_pts[:,1],
-                z=rotated_pts[:,2],
-                mode='markers',
-                marker=dict(
-                    size=2,
-                    color='red',
-                    opacity=0.6
-                ),
-                name='Scan Points'
-            ))
-            fig_cmp.update_layout(
-                scene=dict(
-                    xaxis_title="X",
-                    yaxis_title="Y",
-                    zaxis_title="Z"
-                ),
-                margin=dict(l=0, r=0, t=30, b=0),
-                height=700
-            )
-            st.plotly_chart(fig_cmp, use_container_width=True)
+if st.session_state.mesh is not None and st.session_state.scan_pts is not None:
+    # Rotation sliders
+    yaw   = st.slider("Yaw (around Z)",   -180.0, 180.0, 0.0, key="yaw")
+    pitch = st.slider("Pitch (around Y)", -180.0, 180.0, 0.0, key="pitch")
+    roll  = st.slider("Roll (around X)",  -180.0, 180.0, 0.0, key="roll")
+    # Build rotation matrix
+    from trimesh.transformations import rotation_matrix
+    t = np.eye(4)
+    t = rotation_matrix(np.radians(roll),  [1,0,0]) @ t
+    t = rotation_matrix(np.radians(pitch), [0,1,0]) @ t
+    t = rotation_matrix(np.radians(yaw),   [0,0,1]) @ t
+    # Visualize
+    st.subheader("Original Mesh & Scan Points Overlay (Rotatable)")
+    fig_cmp = go.Figure()
+    # Rotate mesh copy
+    vis_mesh = st.session_state.mesh.copy()
+    vis_mesh.apply_transform(t)
+    fig_cmp.add_trace(go.Mesh3d(
+        x=vis_mesh.vertices[:,0],
+        y=vis_mesh.vertices[:,1],
+        z=vis_mesh.vertices[:,2],
+        opacity=0.2,
+        color='blue',
+        name='Original Mesh'
+    ))
+    # Rotate scan points
+    scan_pts = st.session_state.scan_pts
+    pts_hom  = np.hstack((scan_pts, np.ones((len(scan_pts),1))))
+    rotated = (pts_hom @ t.T)[:, :3]
+    fig_cmp.add_trace(go.Scatter3d(
+        x=rotated[:,0], y=rotated[:,1], z=rotated[:,2],
+        mode='markers',
+        marker=dict(size=2, color='red', opacity=0.6),
+        name='Scan Points'
+    ))
+    fig_cmp.update_layout(
+        scene=dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z"),
+        margin=dict(l=0,r=0,t=30,b=0), height=700
+    )
+    st.plotly_chart(fig_cmp, use_container_width=True)
 
 
 
