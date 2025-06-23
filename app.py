@@ -63,9 +63,6 @@ with b2:
     #     "intermediate smoothing (not operational)",
     #     value=False
     # )
-# Load mesh (inches assumed)
-mesh = trimesh.load(BytesIO(cad_file.read()),
-                    file_type=cad_file.name.split('.')[-1])
 # ── 3) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
     # If no mesh -> Error message
@@ -77,7 +74,10 @@ if st.button("Process"):
     #    width_val, height_val are now inches
     bounds_width_in  = width_val
     bounds_height_in = height_val
-    
+
+    # Load mesh (inches assumed)
+    mesh = trimesh.load(BytesIO(cad_file.read()),
+                        file_type=cad_file.name.split('.')[-1])
     # Error if mesh empty
     if mesh.is_empty:
         st.error("Mesh is empty.")
