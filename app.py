@@ -349,6 +349,63 @@ if st.button("Process Mesh", key="process_mesh"):
             ))
             fig_cmp.update_layout(margin=dict(l=0, r=0, t=30, b=0))
             st.plotly_chart(fig_cmp, use_container_width=True)
+            # Dsiplay more stufffff
+            # Visualize both meshes + raw scan points
+            st.subheader("Original Mesh, Aligned Scan Mesh & Scan Points")
+            fig_cmp = go.Figure()
+            
+            # 1) Original mesh (blue, translucent)
+            fig_cmp.add_trace(go.Mesh3d(
+                x=mesh.vertices[:,0],
+                y=mesh.vertices[:,1],
+                z=mesh.vertices[:,2],
+                opacity=0.2,
+                color='blue',
+                name='Original Mesh'
+            ))
+            
+            # 2) Aligned scan mesh (red, translucent)
+            fig_cmp.add_trace(go.Mesh3d(
+                x=scan.vertices[:,0],
+                y=scan.vertices[:,1],
+                z=scan.vertices[:,2],
+                opacity=0.2,
+                color='red',
+                name='Aligned Scan Mesh'
+            ))
+            
+            # 3) Raw scan point cloud (small markers)
+            fig_cmp.add_trace(go.Scatter3d(
+                x=scan_pts[:,0],
+                y=scan_pts[:,1],
+                z=scan_pts[:,2],
+                mode='markers',
+                marker=dict(
+                    size=2,
+                    color='black',
+                    opacity=0.6
+                ),
+                name='Scan Points'
+            ))
+            
+            fig_cmp.update_layout(
+                scene=dict(
+                    xaxis_title="X",
+                    yaxis_title="Y",
+                    zaxis_title="Z"
+                ),
+                margin=dict(l=0, r=0, t=30, b=0),
+                height=700
+            )
+            
+            st.plotly_chart(fig_cmp, use_container_width=True)
+
+
+
+
+
+
+
 
 
                 
