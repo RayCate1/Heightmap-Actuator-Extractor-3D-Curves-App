@@ -291,8 +291,10 @@ if st.button("Process Mesh"):
         st.error("Please upload a scanned mesh file.")
         st.stop()
     # Load scan and original
-    scan = trimesh.load(BytesIO(uploaded_scan.read()),
-                        file_type=uploaded_scan.name.split('.')[-1])
+    scan = trimesh.load(
+        BytesIO(uploaded_scan.read()),
+        file_type=uploaded_scan.name.split('.')[-1]
+    )
     if scan.is_empty:
         st.error("Scanned mesh is empty.")
         st.stop()
@@ -300,10 +302,9 @@ if st.button("Process Mesh"):
     orig_pts = mesh.sample(10000)
     scan_pts = scan.sample(10000)
     # Run ICP registration to align scan to original (no scaling)
-    # Run ICP registration to align scan to original (no scaling)
-matrix = trimesh.registration.icp(
-    scan_pts, orig_pts, max_iterations=50, scale=False
-)
+    matrix = trimesh.registration.icp(
+        scan_pts, orig_pts, max_iterations=50, scale=False
+    )
     # Apply transform
     scan.apply_transform(matrix)
     # Compute Hausdorff distances before and after
@@ -324,7 +325,8 @@ matrix = trimesh.registration.icp(
     ))
     fig_cmp.update_layout(margin=dict(l=0,r=0,t=30,b=0))
     st.plotly_chart(fig_cmp, use_container_width=True)
-            
+
+                
 
 
 
