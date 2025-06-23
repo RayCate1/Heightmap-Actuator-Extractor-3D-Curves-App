@@ -350,28 +350,42 @@ if st.button("Process Mesh", key="process_mesh"):
             fig_cmp.update_layout(margin=dict(l=0, r=0, t=30, b=0))
             st.plotly_chart(fig_cmp, use_container_width=True)
             # Dsiplay more stufffff
-            # 10) Comparison: Process Mesh with visualization updates
-            # After ICP and distance calculations...
-            st.subheader("Original Mesh & Scan Points Overlay")
+            # 10) Comparison: Process Mesh with visualization updates and rotation controls
+            # Rotation sliders for mesh orientation
+            yaw   = st.slider("Yaw (around Z)", -180.0, 180.0, 0.0, key="yaw")
+            pitch = st.slider("Pitch (around Y)", -180.0, 180.0, 0.0, key="pitch")
+            roll  = st.slider("Roll (around X)", -180.0, 180.0, 0.0, key="roll")
+            
+            # Build rotation matrix
+            from trimesh.transformations import rotation_matrix
+            t = np.eye(4)
+            t = rotation_matrix(np.radians(roll),  [1,0,0]) @ t
+            t = rotation_matrix(np.radians(pitch), [0,1,0]) @ t
+            t = rotation_matrix(np.radians(yaw),   [0,0,1]) @ t
+            
+            st.subheader("Original Mesh & Scan Points Overlay (Rotatable)")
             fig_cmp = go.Figure()
-            # 1) Original mesh in blue, translucent
+            # Transform copy of mesh for visualization
+            vis_mesh = mesh.copy()
+            vis_mesh.apply_transform(t)
             fig_cmp.add_trace(go.Mesh3d(
-                x=mesh.vertices[:,0],
-                y=mesh.vertices[:,1],
-                z=mesh.vertices[:,2],
+                x=vis_mesh.vertices[:,0],
+                y=vis_mesh.vertices[:,1],
+                z=vis_mesh.vertices[:,2],
                 opacity=0.2,
                 color='blue',
                 name='Original Mesh'
             ))
-            # 2) Raw scan point cloud as black markers
+            # Transform scan points as well
+            rotated_pts = (np.hstack((scan_pts, np.ones((len(scan_pts),1)))) @ t.T)[:,:3]
             fig_cmp.add_trace(go.Scatter3d(
-                x=scan_pts[:,0],
-                y=scan_pts[:,1],
-                z=scan_pts[:,2],
+                x=rotated_pts[:,0],
+                y=rotated_pts[:,1],
+                z=rotated_pts[:,2],
                 mode='markers',
                 marker=dict(
                     size=2,
-                    color='red',  # Scan points in red
+                    color='red',
                     opacity=0.6
                 ),
                 name='Scan Points'
