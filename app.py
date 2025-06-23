@@ -313,7 +313,8 @@ if st.button("Process Mesh", key="process_mesh"):
             # … do ICP, Hausdorff, plotting, etc. …
             orig_pts = mesh.sample(10000)
             scan_pts = scan.sample(10000)
-            matrix   = trimesh.registration.icp(
+            # Run ICP, which returns (matrix, distances, iterations)
+            matrix, _, _ = trimesh.registration.icp(
                 scan_pts, orig_pts, max_iterations=50, scale=False
             )
             scan.apply_transform(matrix)
