@@ -30,9 +30,6 @@ cad_file = st.file_uploader("Upload planar geometry (OBJ/STL in inches)", type=[
 uploaded_scan = st.file_uploader(
     "Upload scanned geometry (STL/OBJ/PLY)", type=["stl","obj","ply"], key="scan_uploader"
 )
-# Load mesh (inches assumed)
-mesh = trimesh.load(BytesIO(cad_file.read()),
-                    file_type=cad_file.name.split('.')[-1])
 # ── 2) MACHINE BOUNDS & ACTUATORS (Imperial) ─────────────────
 st.markdown("### Machine Bounds & Actuators")
 b1, b2 = st.columns(2)
@@ -66,6 +63,9 @@ with b2:
     #     "intermediate smoothing (not operational)",
     #     value=False
     # )
+# Load mesh (inches assumed)
+mesh = trimesh.load(BytesIO(cad_file.read()),
+                    file_type=cad_file.name.split('.')[-1])
 # ── 3) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
     # If no mesh -> Error message
