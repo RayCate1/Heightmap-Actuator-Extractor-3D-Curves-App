@@ -329,29 +329,13 @@ if st.button("Process Mesh", key="process_mesh"):
 
             st.write(f"Max Hausdorff before: {before:.4f} in")
             st.write(f"Max Hausdorff after : {after:.4f} in")
+            # store for visualization
+            st.session_state.mesh = mesh
+            st.session_state.scan_pts = scan_pts
+            st.success("Scan aligned to original mesh.")
 
-            # 2g) Overlay plot
-            st.subheader("Original vs Aligned Scan")
-            fig_cmp = go.Figure()
-            fig_cmp.add_trace(go.Mesh3d(
-                x=mesh.vertices[:,0],
-                y=mesh.vertices[:,1],
-                z=mesh.vertices[:,2],
-                opacity=0.2,
-                color='blue',
-                name='Original'
-            ))
-            fig_cmp.add_trace(go.Mesh3d(
-                x=scan.vertices[:,0],
-                y=scan.vertices[:,1],
-                z=scan.vertices[:,2],
-                opacity=0.2,
-                color='red',
-                name='Aligned Scan'
-            ))
-            fig_cmp.update_layout(margin=dict(l=0, r=0, t=30, b=0))
-            st.plotly_chart(fig_cmp, use_container_width=True)
-            # Dsiplay more stufffff
+
+# Dsiplay more stufffff
 if st.session_state.mesh is not None and st.session_state.scan_pts is not None:
     # Rotation sliders
     yaw   = st.slider("Yaw (around Z)",   -180.0, 180.0, 0.0, key="yaw")
