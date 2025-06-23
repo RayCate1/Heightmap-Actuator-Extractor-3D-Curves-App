@@ -340,7 +340,7 @@ if st.button("Process Mesh", key="process_mesh"):
 # Show only if we have processed data
 if st.session_state.mesh is not None and st.session_state.scan_pts is not None:
     # Orientation controls in a compact 3-column expander
-    with st.expander("Orientation Controls", expanded=True):
+    with st.expander("**Yaw (Z)**  **Pitch (Y)**  **Roll (X)**", expanded=True):
         col1, col2, col3 = st.columns(3)
         with col1:
             yaw   = st.slider("Yaw (Z)",   -180, 180, 0, step=90, label_visibility="collapsed", key="yaw")
@@ -348,8 +348,6 @@ if st.session_state.mesh is not None and st.session_state.scan_pts is not None:
             pitch = st.slider("Pitch (Y)", -180, 180, 0, step=90, label_visibility="collapsed", key="pitch")
         with col3:
             roll  = st.slider("Roll (X)",  -180, 180, 0, step=90, label_visibility="collapsed", key="roll")
-    # Display axes labels manually below the expander
-    st.write("**Yaw (Z)**  **Pitch (Y)**  **Roll (X)**")
 
     # Build rotation matrix
     from trimesh.transformations import rotation_matrix
