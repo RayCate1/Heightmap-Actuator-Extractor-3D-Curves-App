@@ -336,17 +336,28 @@ if st.button("Process Mesh", key="process_mesh"):
 
 
 # Dsiplay more stufffff
+# 11) Rotatable overlay (updates on slider change)
+# Show only if we have processed data
 if st.session_state.mesh is not None and st.session_state.scan_pts is not None:
-    # Rotation sliders in 90° increments
-    yaw   = st.slider("Yaw (around Z)",   -180, 180, 0, step=90, key="yaw")
-    pitch = st.slider("Pitch (around Y)", -180, 180, 0, step=90, key="pitch")
-    roll  = st.slider("Roll (around X)",  -180, 180, 0, step=90, key="roll")
+    # Orientation controls in a compact 3-column expander
+    with st.expander("Orientation Controls", expanded=True):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            yaw   = st.slider("Yaw (Z)",   -180, 180, 0, step=90, label_visibility="collapsed", key="yaw")
+        with col2:
+            pitch = st.slider("Pitch (Y)", -180, 180, 0, step=90, label_visibility="collapsed", key="pitch")
+        with col3:
+            roll  = st.slider("Roll (X)",  -180, 180, 0, step=90, label_visibility="collapsed", key="roll")
+    # Display axes labels manually below the expander
+    st.write("**Yaw (Z)**  **Pitch (Y)**  **Roll (X)**")
+
     # Build rotation matrix
     from trimesh.transformations import rotation_matrix
     t = np.eye(4)
     t = rotation_matrix(np.radians(roll),  [1,0,0]) @ t
     t = rotation_matrix(np.radians(pitch), [0,1,0]) @ t
     t = rotation_matrix(np.radians(yaw),   [0,0,1]) @ t
+
     # Visualize with swapped Y<->Z
     st.subheader("Original Mesh & Scan Points Overlay (Rotatable)")
     fig_cmp = go.Figure()
