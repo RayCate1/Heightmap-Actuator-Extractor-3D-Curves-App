@@ -270,84 +270,57 @@ if st.button("Process CAD", key="process_cad"):
             ),
             height=600, margin=dict(l=20, r=20, t=40, b=20)
         )
-        st.plotly_chart(fig3d, use_container_width=True)
+        st.plotly_chart(fig3d, use_container_width=True)# 10) Comparison: Process Mesh with persistent state and rotatable view
 
 
 
-    
-
-
-
-
-
-
-    
+# Initialize session state fields if not present
 if 'mesh' not in st.session_state:
     st.session_state.mesh = None
 if 'scan_pts' not in st.session_state:
     st.session_state.scan_pts = None
+
+# — Process Mesh button stores mesh & scan_pts into session state —
 if st.button("Process Mesh", key="process_mesh"):
-    # 2a) Check that the before‐mesh is present
     if cad_file is None:
         st.error("Please upload an original geometry file first.")
-    # 2b) Check that the scan has been uploaded
     elif uploaded_scan is None:
         st.error("Please upload a scanned mesh file.")
     else:
-        # 2c) Reload the original CAD mesh
+        # Load original CAD mesh
         mesh = trimesh.load(
             BytesIO(cad_file.read()),
             file_type=cad_file.name.split('.')[-1]
         )
         if mesh.is_empty:
             st.error("Original mesh is empty.")
-            st.stop()
-
-        # 2d) Load the scanned mesh
-        scan_bytes = uploaded_scan.read()
-        scan = trimesh.load(
-            BytesIO(scan_bytes),
-            file_type=uploaded_scan.name.split('.')[-1]
-        )
-        if scan.is_empty:
-            st.error("Scanned mesh is empty.")
         else:
-            # 2e) Align via ICP (no scaling)
-            orig_pts = mesh.sample(10000)
-            scan_pts = scan.sample(10000)
-            matrix, _, _ = trimesh.registration.icp(
-                scan_pts, orig_pts, max_iterations=50, scale=False
+            # Load scanned mesh and align
+            scan = trimesh.load(
+                BytesIO(uploaded_scan.read()),
+                file_type=uploaded_scan.name.split('.')[-1]
             )
-            scan.apply_transform(matrix)
+            if scan.is_empty:
+                st.error("Scanned mesh is empty.")
+            else:
+                orig_pts = mesh.sample(10000)
+                scan_pts = scan.sample(10000)
+                matrix, _, _ = trimesh.registration.icp(
+                    scan_pts, orig_pts, max_iterations=50, scale=False
+                )
+                scan.apply_transform(matrix)
+                # store for visualization
+                st.session_state.mesh = mesh
+                st.session_state.scan_pts = scan_pts
+                st.success("Scan aligned to original mesh.")
 
-            # 2f) Compute Hausdorff via signed-distance
-            from trimesh.proximity import ProximityQuery
-            import numpy as np
-            pq     = ProximityQuery(mesh)
-            before = float(np.max(np.abs(pq.signed_distance(scan_pts))))
-            after  = float(np.max(np.abs(pq.signed_distance(scan.sample(10000)))))
-
-            st.write(f"Max Hausdorff before: {before:.4f} in")
-            st.write(f"Max Hausdorff after : {after:.4f} in")
-            # store for visualization
-            st.session_state.mesh = mesh
-            st.session_state.scan_pts = scan_pts
-            st.success("Scan aligned to original mesh.")
-
-
-# Dsiplay more stufffff
 # 11) Rotatable overlay (updates on slider change)
 # Show only if we have processed data
 if st.session_state.mesh is not None and st.session_state.scan_pts is not None:
-    # Orientation controls in a compact 3-column expander
-    with st.expander("**Yaw (Z)**  **Pitch (Y)**  **Roll (X)**", expanded=True):
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            yaw   = st.slider("Yaw (Z)",   -180, 180, 0, step=90, label_visibility="collapsed", key="yaw")
-        with col2:
-            pitch = st.slider("Pitch (Y)", -180, 180, 0, step=90, label_visibility="collapsed", key="pitch")
-        with col3:
-            roll  = st.slider("Roll (X)",  -180, 180, 0, step=90, label_visibility="collapsed", key="roll")
+    # Use sidebar sliders for a compact, low-profile UI
+    yaw   = st.sidebar.slider("Yaw (Z)",   -180, 180, 0, step=90, key="yaw")
+    pitch = st.sidebar.slider("Pitch (Y)", -180, 180, 0, step=90, key="pitch")
+    roll  = st.sidebar.slider("Roll (X)",  -180, 180, 0, step=90, key="roll")
 
     # Build rotation matrix
     from trimesh.transformations import rotation_matrix
@@ -391,7 +364,6 @@ if st.session_state.mesh is not None and st.session_state.scan_pts is not None:
         margin=dict(l=0,r=0,t=30,b=0), height=700
     )
     st.plotly_chart(fig_cmp, use_container_width=True)
-
 
 
 
