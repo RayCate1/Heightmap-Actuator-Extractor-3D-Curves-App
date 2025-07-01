@@ -38,7 +38,7 @@ with b1:
     nz             = st.number_input("Z-Resolution (# slices)", value=1000)
 with b2:
     comp_thickness = st.number_input("Composite Thickness (in)", value=1.0)
-    wheel_radius   = st.number_input("Wheel Radius (in)", value=0.625)
+    wheel_diam   = st.number_input("Wheel Diameter (in)", value=1.5)
     heat_k         = st.number_input("Heating Element Thickness (in)", value=0.019685)
     # Checkbox to shift zero
     shift_zero = st.checkbox(
@@ -158,7 +158,7 @@ if st.button("Process"):
     angle_vs_x = np.degrees(np.arctan2(slopes_x, 1.0))  # shape (A, nz)
     
     # 4) Determine effective span k (inches) between components
-    eff_span = (heat_k * 2) + (wheel_radius * 2) + comp_thickness
+    eff_span = (heat_k * 2) + wheel_diam + comp_thickness
     
     # 5) Compute displacement: full d = k / cos(θ), then half-displacement
     d_full    = eff_span / np.cos(np.radians(angle_vs_x))  # total displacement (inches)
