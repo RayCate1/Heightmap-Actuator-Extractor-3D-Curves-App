@@ -77,6 +77,33 @@ with b2:
         value=False
     )
 
+    # Additional actuator parameters (all values in metres or metres per second)
+    # Emin: minimum actuator extension (purely for display)
+    min_extension = st.number_input(
+        "Minimum Actuator Extension Emin (m)", value=0.0, min_value=0.0,
+        help="Minimum extension of the actuator (Emin) in metres."
+    )
+    # r: shaft radius
+    shaft_radius = st.number_input(
+        "Shaft Radius r (m)", value=0.0, min_value=0.0,
+        help="Radius of the actuator shaft (r) in metres."
+    )
+    # R: body radius
+    body_radius = st.number_input(
+        "Body Radius R (m)", value=0.0, min_value=0.0,
+        help="Radius of the actuator body (R) in metres."
+    )
+    # L: body length
+    body_length = st.number_input(
+        "Body Length L (m)", value=0.0, min_value=0.0,
+        help="Length of the actuator body (L) in metres."
+    )
+    # Vmax: maximum actuator velocity
+    max_velocity = st.number_input(
+        "Maximum Actuator Velocity Vmax (m/s)", value=0.0, min_value=0.0,
+        help="Maximum actuator velocity (Vmax) in metres per second."
+    )
+
 # ── 3) LAUNCH PROCESS ────────────────────────────────────────
 if st.button("Process"):
     # If no mesh -> Error message
@@ -288,9 +315,32 @@ if st.button("Process"):
         else:
             param_top = param_bottom = 'N/A'
 
-        # Placeholder parameter values; users can customise these as needed
-        param_value_top = 0.0
-        param_value_bottom = 0.0
+        # Determine parameter values based on actuator index.  The mapping
+        # corresponds to user-defined mechanical properties:
+        #   - i=0 (first actuator pair): top parameter Emax is the bounds height;
+        #     bottom parameter Emin is the minimum extension value.
+        #   - i=1 (second actuator pair): top parameter r is the shaft radius;
+        #     bottom parameter R is the body radius.
+        #   - i=2 (third actuator pair): top parameter L is the body length;
+        #     bottom parameter Vmax is the maximum actuator velocity.
+        #   - i=3 (fourth actuator pair): top parameter W is the wheel diameter;
+        #     bottom parameter D is the element thickness (heater element thickness).
+        #   - i>=4: unused pairs with no specific parameters.
+        if i == 0:
+            param_value_top = bounds_height_m
+            param_value_bottom = min_extension
+        elif i == 1:
+            param_value_top = shaft_radius
+            param_value_bottom = body_radius
+        elif i == 2:
+            param_value_top = body_length
+            param_value_bottom = max_velocity
+        elif i == 3:
+            param_value_top = wheel_diam_m
+            param_value_bottom = heat_k_m
+        else:
+            param_value_top = 0.0
+            param_value_bottom = 0.0
 
         # Top actuator row
         row_top = {
