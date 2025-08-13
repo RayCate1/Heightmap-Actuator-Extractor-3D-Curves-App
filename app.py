@@ -645,6 +645,5 @@ if st.button("Process"):
     
     # Show a preview of the DataFrame in the Streamlit app
     st.markdown("#### Preview of Actuator Control Table (metres)")
-    # To avoid overwhelming the display, show only the first few slices
-    preview_cols = ['parameter_name', 'parameters', 'actuator', 'is_top', 'x_0', 'y_0', 'z_0', 'd_x', 'd_y', 'd_z'] + slice_cols[:min(3, nz)]
-    st.dataframe(df_output[preview_cols].head(10))
+    # To avoid overwhelming the display, show only the first few slice
+    st.dataframe(df_output)
